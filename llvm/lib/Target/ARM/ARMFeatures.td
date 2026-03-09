@@ -600,6 +600,10 @@ def FeatureThumb2 : SubtargetFeature<"thumb2", "HasThumb2", "true",
 def FeatureNoARM  : SubtargetFeature<"noarm", "NoARM", "true",
                                      "Does not support ARM mode execution">;
 
+// True if subtarget does not support 8-bit stores
+def FeatureNoI8Store  : SubtargetFeature<"no-i8-store", "NoI8Store", "true",
+                                         "Does not support 8-bit memory stores">;
+
 //===----------------------------------------------------------------------===//
 // ARM ISAa.
 //

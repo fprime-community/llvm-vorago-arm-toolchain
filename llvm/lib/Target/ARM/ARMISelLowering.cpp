@@ -1190,6 +1190,9 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::INTRINSIC_WO_CHAIN, MVT::i64, Custom);
   setOperationAction(ISD::LOAD, MVT::i64, Custom);
   setOperationAction(ISD::STORE, MVT::i64, Custom);
+  if (STI.hasFeature(ARM::FeatureNoI8Store)) {
+    setOperationAction(ISD::STORE, MVT::i8, Custom);
+  }
 
   // MVE lowers 64 bit shifts to lsll and lsrl
   // assuming that ISD::SRL and SRA of i64 are already marked custom
@@ -10254,8 +10257,9 @@ static SDValue LowerPredicateStore(SDValue Op, SelectionDAG &DAG) {
       ST->getMemOperand());
 }
 
-static SDValue LowerSTORE(SDValue Op, SelectionDAG &DAG,
-                          const ARMSubtarget *Subtarget) {
+SDValue
+ARMTargetLowering::LowerSTORE(SDValue Op, SelectionDAG &DAG,
+                              const ARMSubtarget *Subtarget) const {
   StoreSDNode *ST = cast<StoreSDNode>(Op.getNode());
   EVT MemVT = ST->getMemoryVT();
   assert(ST->isUnindexed() && "Stores should be unindexed at this point.");
@@ -10278,6 +10282,34 @@ static SDValue LowerSTORE(SDValue Op, SelectionDAG &DAG,
     return DAG.getMemIntrinsicNode(ARMISD::STRD, dl, DAG.getVTList(MVT::Other),
                                    {ST->getChain(), Lo, Hi, ST->getBasePtr()},
                                    MemVT, ST->getMemOperand());
+  } else if (MemVT == MVT::i8 && Subtarget->hasFeature(ARM::FeatureNoI8Store)) {
+    const auto &DL = DAG.getDataLayout();
+    SDValue Chain = ST->getChain();
+    SDValue Val = ST->getValue();
+    SDValue Ptr = ST->getBasePtr();
+    SDLoc dl(ST);
+
+    TargetLowering::ArgListTy Args;
+    TargetLowering::ArgListEntry Entry;
+
+    Entry.Node = Ptr;
+    Entry.Ty = PointerType::getUnqual(*DAG.getContext());
+    Args.push_back(Entry);
+
+    Entry.Node = Val;
+    Entry.Ty = Type::getInt8Ty(*DAG.getContext());
+    Args.push_back(Entry);
+
+    // FIXME(tumbar) Do we care about debug location here?
+    TargetLowering::CallLoweringInfo CLI(DAG);
+    CLI.setDebugLoc(dl).setChain(Chain)
+       .setLibCallee(CallingConv::C,
+                     Type::getVoidTy(*DAG.getContext()),
+                     DAG.getExternalSymbol("__store_8_as_16", getPointerTy(DL)),
+                     std::move(Args));
+
+    std::pair<SDValue, SDValue> CallResult = LowerCallTo(CLI);
+    return CallResult.second; // Return the new chain
   } else if (Subtarget->hasMVEIntegerOps() &&
              ((MemVT == MVT::v2i1 || MemVT == MVT::v4i1 || MemVT == MVT::v8i1 ||
                MemVT == MVT::v16i1))) {
