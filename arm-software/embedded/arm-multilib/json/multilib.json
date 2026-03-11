@@ -391,6 +391,11 @@
             "flags": "--target=thumbv7m-unknown-none-eabihf -mfpu=fpv4-sp-d16 -fno-exceptions -fno-rtti"
         },
         {
+            "variant": "armv7m_hard_fpv4_sp_d16_unaligned_nostrb",
+            "json": "armv7m_hard_fpv4_sp_d16_unaligned_nostrb.json",
+            "flags": "--target=thumbv7m-unknown-none-eabihf -mcpu=cortex-m4-v41630 -mfpu=fpv4-sp-d16 -fno-exceptions -fno-rtti"
+        },
+        {
             "variant": "armv7m_hard_fpv4_sp_d16",
             "json": "armv7m_hard_fpv4_sp_d16.json",
             "flags": "--target=thumbv7m-unknown-none-eabihf -mfpu=fpv4-sp-d16 -fno-exceptions -fno-rtti -mno-unaligned-access"
