@@ -1138,7 +1138,10 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM,
       setIndexedLoadAction(im,  MVT::i16, Legal);
       setIndexedLoadAction(im,  MVT::i32, Legal);
       setIndexedStoreAction(im, MVT::i1,  Legal);
-      setIndexedStoreAction(im, MVT::i8,  Legal);
+      if (Subtarget->noI8Store())
+        setIndexedStoreAction(im, MVT::i8,  Custom);
+      else
+        setIndexedStoreAction(im, MVT::i8,  Legal);
       setIndexedStoreAction(im, MVT::i16, Legal);
       setIndexedStoreAction(im, MVT::i32, Legal);
     }
@@ -1192,6 +1195,9 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::STORE, MVT::i64, Custom);
   if (STI.hasFeature(ARM::FeatureNoI8Store)) {
     setOperationAction(ISD::STORE, MVT::i8, Custom);
+    setOperationAction(ISD::ATOMIC_STORE, MVT::i8, Custom);
+    setTruncStoreAction(MVT::i32, MVT::i8, Custom);
+    setTruncStoreAction(MVT::i16, MVT::i8, Custom);
   }
 
   // MVE lowers 64 bit shifts to lsll and lsrl
@@ -10282,7 +10288,7 @@ ARMTargetLowering::LowerSTORE(SDValue Op, SelectionDAG &DAG,
     return DAG.getMemIntrinsicNode(ARMISD::STRD, dl, DAG.getVTList(MVT::Other),
                                    {ST->getChain(), Lo, Hi, ST->getBasePtr()},
                                    MemVT, ST->getMemOperand());
-  } else if (MemVT == MVT::i8 && Subtarget->hasFeature(ARM::FeatureNoI8Store)) {
+  } else if (MemVT == MVT::i8 && Subtarget->noI8Store()) {
     const auto &DL = DAG.getDataLayout();
     SDValue Chain = ST->getChain();
     SDValue Val = ST->getValue();
@@ -10499,7 +10505,39 @@ static SDValue LowerVecReduceMinMax(SDValue Op, SelectionDAG &DAG,
   return Res;
 }
 
-static SDValue LowerAtomicLoadStore(SDValue Op, SelectionDAG &DAG) {
+SDValue ARMTargetLowering::LowerATOMIC_STORE(SDValue Op, SelectionDAG &DAG, const ARMSubtarget *Subtarget) const {
+  StoreSDNode *ST = cast<StoreSDNode>(Op.getNode());
+  EVT MemVT = ST->getMemoryVT();
+  if (MemVT == MVT::i8 && Subtarget->noI8Store()) {
+    const auto &DL = DAG.getDataLayout();
+    SDValue Chain = ST->getChain();
+    SDValue Val = ST->getValue();
+    SDValue Ptr = ST->getBasePtr();
+    SDLoc dl(ST);
+
+    TargetLowering::ArgListTy Args;
+    TargetLowering::ArgListEntry Entry;
+
+    Entry.Node = Ptr;
+    Entry.Ty = PointerType::getUnqual(*DAG.getContext());
+    Args.push_back(Entry);
+
+    Entry.Node = Val;
+    Entry.Ty = Type::getInt8Ty(*DAG.getContext());
+    Args.push_back(Entry);
+
+    // FIXME(tumbar) Do we care about debug location here?
+    TargetLowering::CallLoweringInfo CLI(DAG);
+    CLI.setDebugLoc(dl).setChain(Chain)
+       .setLibCallee(CallingConv::C,
+                     Type::getVoidTy(*DAG.getContext()),
+                     DAG.getExternalSymbol("__store_8_as_16", getPointerTy(DL)),
+                     std::move(Args));
+
+    std::pair<SDValue, SDValue> CallResult = LowerCallTo(CLI);
+    return CallResult.second; // Return the new chain
+  }
+
   if (isStrongerThanMonotonic(cast<AtomicSDNode>(Op)->getSuccessOrdering()))
     // Acquire/Release load/store is not legal for targets without a dmb or
     // equivalent available.
@@ -10751,7 +10789,7 @@ SDValue ARMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::VECREDUCE_SMAX:
     return LowerVecReduceMinMax(Op, DAG, Subtarget);
   case ISD::ATOMIC_LOAD:
-  case ISD::ATOMIC_STORE:  return LowerAtomicLoadStore(Op, DAG);
+  case ISD::ATOMIC_STORE:  return LowerATOMIC_STORE(Op, DAG, Subtarget);
   case ISD::FSINCOS:       return LowerFSINCOS(Op, DAG);
   case ISD::SDIVREM:
   case ISD::UDIVREM:       return LowerDivRem(Op, DAG);

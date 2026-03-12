@@ -1697,8 +1697,10 @@ def t2LDAH : T2Ildacq<0b1101, 0b01, (outs rGPR:$Rt),
 
 // Store
 defm t2STR :T2I_st<0b10,"str", IIC_iStore_i, IIC_iStore_si, GPR, store>;
-defm t2STRB:T2I_st<0b00,"strb", IIC_iStore_bh_i, IIC_iStore_bh_si,
-                   rGPR, truncstorei8>;
+let Predicates = [IsSTRBEnabled] in {
+  defm t2STRB:T2I_st<0b00,"strb", IIC_iStore_bh_i, IIC_iStore_bh_si,
+                    rGPR, truncstorei8>;
+}
 defm t2STRH:T2I_st<0b01,"strh", IIC_iStore_bh_i, IIC_iStore_bh_si,
                    rGPR, truncstorei16>;
 
@@ -1727,13 +1729,15 @@ def t2STRH_PRE  : T2Ipreldst<0, 0b01, 0, 1, (outs GPRnopc:$Rn_wb),
                         "$addr.base = $Rn_wb,@earlyclobber $Rn_wb", []>,
                   Sched<[WriteST]>;
 
-def t2STRB_PRE  : T2Ipreldst<0, 0b00, 0, 1, (outs GPRnopc:$Rn_wb),
-                            (ins rGPR:$Rt, t2addrmode_imm8_pre:$addr),
-                            AddrModeT2_i8, IndexModePre, IIC_iStore_bh_iu,
-                        "strb", "\t$Rt, $addr!",
-                        "$addr.base = $Rn_wb,@earlyclobber $Rn_wb", []>,
-            Sched<[WriteST]>;
-} // mayStore = 1, hasSideEffects = 0
+let Predicates = [IsSTRBEnabled] in {
+  def t2STRB_PRE  : T2Ipreldst<0, 0b00, 0, 1, (outs GPRnopc:$Rn_wb),
+                              (ins rGPR:$Rt, t2addrmode_imm8_pre:$addr),
+                              AddrModeT2_i8, IndexModePre, IIC_iStore_bh_iu,
+                          "strb", "\t$Rt, $addr!",
+                          "$addr.base = $Rn_wb,@earlyclobber $Rn_wb", []>,
+              Sched<[WriteST]>;
+  } // mayStore = 1, hasSideEffects = 0
+}
 
 def t2STR_POST : T2Ipostldst<0, 0b10, 0, 0, (outs GPRnopc:$Rn_wb),
                             (ins GPRnopc:$Rt, addr_offset_none:$Rn,
@@ -1757,16 +1761,18 @@ def t2STRH_POST : T2Ipostldst<0, 0b01, 0, 0, (outs GPRnopc:$Rn_wb),
                               t2am_imm8_offset:$offset))]>,
             Sched<[WriteST]>;
 
-def t2STRB_POST : T2Ipostldst<0, 0b00, 0, 0, (outs GPRnopc:$Rn_wb),
-                            (ins rGPR:$Rt, addr_offset_none:$Rn,
-                                 t2am_imm8_offset:$offset),
-                            AddrModeT2_i8, IndexModePost, IIC_iStore_bh_iu,
-                         "strb", "\t$Rt, $Rn$offset",
-                         "$Rn = $Rn_wb,@earlyclobber $Rn_wb",
-        [(set GPRnopc:$Rn_wb,
-              (post_truncsti8 rGPR:$Rt, addr_offset_none:$Rn,
-                              t2am_imm8_offset:$offset))]>,
-            Sched<[WriteST]>;
+let Predicates = [IsSTRBEnabled] in {
+  def t2STRB_POST : T2Ipostldst<0, 0b00, 0, 0, (outs GPRnopc:$Rn_wb),
+                              (ins rGPR:$Rt, addr_offset_none:$Rn,
+                                  t2am_imm8_offset:$offset),
+                              AddrModeT2_i8, IndexModePost, IIC_iStore_bh_iu,
+                          "strb", "\t$Rt, $Rn$offset",
+                          "$Rn = $Rn_wb,@earlyclobber $Rn_wb",
+          [(set GPRnopc:$Rn_wb,
+                (post_truncsti8 rGPR:$Rt, addr_offset_none:$Rn,
+                                t2am_imm8_offset:$offset))]>,
+              Sched<[WriteST]>;
+}
 
 // Pseudo-instructions for pattern matching the pre-indexed stores. We can't
 // put the patterns on the instruction definitions directly as ISel wants
@@ -1781,12 +1787,14 @@ def t2STR_preidx: t2PseudoInst<(outs GPRnopc:$Rn_wb),
       [(set GPRnopc:$Rn_wb,
             (pre_store rGPR:$Rt, GPRnopc:$Rn, t2am_imm8_offset:$offset))]>,
             Sched<[WriteST]>;
-def t2STRB_preidx: t2PseudoInst<(outs GPRnopc:$Rn_wb),
-               (ins rGPR:$Rt, GPRnopc:$Rn, t2am_imm8_offset:$offset, pred:$p),
-               4, IIC_iStore_ru,
-      [(set GPRnopc:$Rn_wb,
-            (pre_truncsti8 rGPR:$Rt, GPRnopc:$Rn, t2am_imm8_offset:$offset))]>,
-            Sched<[WriteST]>;
+let Predicates = [IsSTRBEnabled] in {
+  def t2STRB_preidx: t2PseudoInst<(outs GPRnopc:$Rn_wb),
+                (ins rGPR:$Rt, GPRnopc:$Rn, t2am_imm8_offset:$offset, pred:$p),
+                4, IIC_iStore_ru,
+        [(set GPRnopc:$Rn_wb,
+              (pre_truncsti8 rGPR:$Rt, GPRnopc:$Rn, t2am_imm8_offset:$offset))]>,
+              Sched<[WriteST]>;
+}
 def t2STRH_preidx: t2PseudoInst<(outs GPRnopc:$Rn_wb),
                (ins rGPR:$Rt, GPRnopc:$Rn, t2am_imm8_offset:$offset, pred:$p),
                4, IIC_iStore_ru,
@@ -1806,15 +1814,17 @@ def t2STR_PRE_imm : t2AsmPseudo<"str${p}.w $Rt, $addr!",
 def t2STR_POST_imm : t2AsmPseudo<"str${p}.w $Rt, $Rn, $imm",
   (ins GPR:$Rt, addr_offset_none:$Rn, t2am_imm8_offset:$imm, pred:$p)>;
 
-// A7.7.163 STRB (immediate) T3
-// .w suffixes; Constraints can't be used on t2InstAlias to describe
-// "$Rn =  $Rn_wb" on POST or "$addr.base = $Rn_wb" on PRE.
-def t2STRB_OFFSET_imm : t2AsmPseudo<"strb${p}.w $Rt, $addr",
-  (ins GPR:$Rt, t2addrmode_negimm8:$addr, pred:$p)>;
-def t2STRB_PRE_imm : t2AsmPseudo<"strb${p}.w $Rt, $addr!",
-  (ins GPR:$Rt, t2addrmode_imm8_pre:$addr, pred:$p)>;
-def t2STRB_POST_imm : t2AsmPseudo<"strb${p}.w $Rt, $Rn, $imm",
-  (ins GPR:$Rt, addr_offset_none:$Rn, t2am_imm8_offset:$imm, pred:$p)>;
+let Predicates = [IsSTRBEnabled] in {
+  // A7.7.163 STRB (immediate) T3
+  // .w suffixes; Constraints can't be used on t2InstAlias to describe
+  // "$Rn =  $Rn_wb" on POST or "$addr.base = $Rn_wb" on PRE.
+  def t2STRB_OFFSET_imm : t2AsmPseudo<"strb${p}.w $Rt, $addr",
+    (ins GPR:$Rt, t2addrmode_negimm8:$addr, pred:$p)>;
+  def t2STRB_PRE_imm : t2AsmPseudo<"strb${p}.w $Rt, $addr!",
+    (ins GPR:$Rt, t2addrmode_imm8_pre:$addr, pred:$p)>;
+  def t2STRB_POST_imm : t2AsmPseudo<"strb${p}.w $Rt, $Rn, $imm",
+    (ins GPR:$Rt, addr_offset_none:$Rn, t2am_imm8_offset:$imm, pred:$p)>;
+}
 
 // A7.7.170 STRH (immediate) T3
 // .w suffixes; Constraints can't be used on t2InstAlias to describe
@@ -1849,7 +1859,9 @@ class T2IstT<bits<2> type, string opc, InstrItinClass ii>
 }
 
 def t2STRT   : T2IstT<0b10, "strt", IIC_iStore_i>;
-def t2STRBT  : T2IstT<0b00, "strbt", IIC_iStore_bh_i>;
+let Predicates = [IsSTRBEnabled] in {
+  def t2STRBT  : T2IstT<0b00, "strbt", IIC_iStore_bh_i>;
+}
 def t2STRHT  : T2IstT<0b01, "strht", IIC_iStore_bh_i>;
 
 } // mayStore = 1, hasSideEffects = 0
@@ -4917,12 +4929,14 @@ def : T2Pat<(atomic_load_32  t2addrmode_negimm8:$addr),
             (t2LDRi8    t2addrmode_negimm8:$addr)>;
 def : T2Pat<(atomic_load_32  t2addrmode_so_reg:$addr),
             (t2LDRs     t2addrmode_so_reg:$addr)>;
-def : T2Pat<(atomic_store_8  GPR:$val, t2addrmode_imm12:$addr),
-            (t2STRBi12  GPR:$val, t2addrmode_imm12:$addr)>;
-def : T2Pat<(atomic_store_8  GPR:$val, t2addrmode_negimm8:$addr),
-            (t2STRBi8   GPR:$val, t2addrmode_negimm8:$addr)>;
-def : T2Pat<(atomic_store_8  GPR:$val, t2addrmode_so_reg:$addr),
-            (t2STRBs    GPR:$val, t2addrmode_so_reg:$addr)>;
+let Predicates = [IsSTRBEnabled] in {
+  def : T2Pat<(atomic_store_8  GPR:$val, t2addrmode_imm12:$addr),
+              (t2STRBi12  GPR:$val, t2addrmode_imm12:$addr)>;
+  def : T2Pat<(atomic_store_8  GPR:$val, t2addrmode_negimm8:$addr),
+              (t2STRBi8   GPR:$val, t2addrmode_negimm8:$addr)>;
+  def : T2Pat<(atomic_store_8  GPR:$val, t2addrmode_so_reg:$addr),
+              (t2STRBs    GPR:$val, t2addrmode_so_reg:$addr)>;
+}
 def : T2Pat<(atomic_store_16 GPR:$val, t2addrmode_imm12:$addr),
             (t2STRHi12  GPR:$val, t2addrmode_imm12:$addr)>;
 def : T2Pat<(atomic_store_16 GPR:$val, t2addrmode_negimm8:$addr),
@@ -5262,15 +5276,19 @@ def : t2InstAlias<"stm${p} $Rn, $regs",
 // width specifier.
 def : t2InstAlias<"str${p} $Rt, $addr",
                   (t2STRi12 GPR:$Rt, t2addrmode_imm12:$addr, pred:$p)>;
-def : t2InstAlias<"strb${p} $Rt, $addr",
-                  (t2STRBi12 rGPR:$Rt, t2addrmode_imm12:$addr, pred:$p)>;
+let Predicates = [IsSTRBEnabled] in {
+  def : t2InstAlias<"strb${p} $Rt, $addr",
+                    (t2STRBi12 rGPR:$Rt, t2addrmode_imm12:$addr, pred:$p)>;
+}
 def : t2InstAlias<"strh${p} $Rt, $addr",
                   (t2STRHi12 rGPR:$Rt, t2addrmode_imm12:$addr, pred:$p)>;
 
 def : t2InstAlias<"str${p} $Rt, $addr",
                   (t2STRs GPR:$Rt, t2addrmode_so_reg:$addr, pred:$p)>;
-def : t2InstAlias<"strb${p} $Rt, $addr",
-                  (t2STRBs rGPR:$Rt, t2addrmode_so_reg:$addr, pred:$p)>;
+let Predicates = [IsSTRBEnabled] in {
+  def : t2InstAlias<"strb${p} $Rt, $addr",
+                    (t2STRBs rGPR:$Rt, t2addrmode_so_reg:$addr, pred:$p)>;
+}
 def : t2InstAlias<"strh${p} $Rt, $addr",
                   (t2STRHs rGPR:$Rt, t2addrmode_so_reg:$addr, pred:$p)>;
 

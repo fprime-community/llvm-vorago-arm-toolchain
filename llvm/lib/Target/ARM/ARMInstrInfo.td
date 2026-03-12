@@ -2864,8 +2864,11 @@ defm LDR  : AI_ldr1<0, "ldr", IIC_iLoad_r, IIC_iLoad_si, load>;
 defm LDRB : AI_ldr1nopc<1, "ldrb", IIC_iLoad_bh_r, IIC_iLoad_bh_si,
                         zextloadi8>;
 defm STR  : AI_str1<0, "str", IIC_iStore_r, IIC_iStore_si, store>;
-defm STRB : AI_str1nopc<1, "strb", IIC_iStore_bh_r, IIC_iStore_bh_si,
+
+let Predicates = [IsSTRBEnabled] in {
+  defm STRB : AI_str1nopc<1, "strb", IIC_iStore_bh_r, IIC_iStore_bh_si,
                         truncstorei8>;
+}
 
 // Special LDR for loads from non-pc-relative constpools.
 let canFoldAsLoad = 1, mayLoad = 1, hasSideEffects = 0,
@@ -3265,7 +3268,10 @@ let mayStore = 1, hasSideEffects = 0 in {
 // FIXME: for STR_PRE_REG etc. the itinerary should be either IIC_iStore_ru or
 // IIC_iStore_siu depending on whether it the offset register is shifted.
 defm STR  : AI2_stridx<0, "str", IIC_iStore_iu, IIC_iStore_ru>;
-defm STRB : AI2_stridx<1, "strb", IIC_iStore_bh_iu, IIC_iStore_bh_ru>;
+
+let Predicates = [IsSTRBEnabled] in {
+  defm STRB : AI2_stridx<1, "strb", IIC_iStore_bh_iu, IIC_iStore_bh_ru>;
+}
 }
 
 def : ARMPat<(post_store GPR:$Rt, addr_offset_none:$addr,
@@ -3276,14 +3282,17 @@ def : ARMPat<(post_store GPR:$Rt, addr_offset_none:$addr,
                          am2offset_imm:$offset),
              (STR_POST_IMM GPR:$Rt, addr_offset_none:$addr,
                            am2offset_imm:$offset)>;
-def : ARMPat<(post_truncsti8 GPR:$Rt, addr_offset_none:$addr,
-                             am2offset_reg:$offset),
-             (STRB_POST_REG GPR:$Rt, addr_offset_none:$addr,
-                            am2offset_reg:$offset)>;
-def : ARMPat<(post_truncsti8 GPR:$Rt, addr_offset_none:$addr,
-                             am2offset_imm:$offset),
-             (STRB_POST_IMM GPR:$Rt, addr_offset_none:$addr,
-                            am2offset_imm:$offset)>;
+
+let Predicates = [IsSTRBEnabled] in {
+  def : ARMPat<(post_truncsti8 GPR:$Rt, addr_offset_none:$addr,
+                              am2offset_reg:$offset),
+              (STRB_POST_REG GPR:$Rt, addr_offset_none:$addr,
+                              am2offset_reg:$offset)>;
+  def : ARMPat<(post_truncsti8 GPR:$Rt, addr_offset_none:$addr,
+                              am2offset_imm:$offset),
+              (STRB_POST_IMM GPR:$Rt, addr_offset_none:$addr,
+                              am2offset_imm:$offset)>;
+}
 
 // Pseudo-instructions for pattern matching the pre-indexed stores. We can't
 // put the patterns on the instruction definitions directly as ISel wants
@@ -3302,16 +3311,20 @@ def STRr_preidx: ARMPseudoInst<(outs GPR:$Rn_wb),
                4, IIC_iStore_ru,
             [(set GPR:$Rn_wb,
                   (pre_store GPR:$Rt, GPR:$Rn, am2offset_reg:$offset))]>;
-def STRBi_preidx: ARMPseudoInst<(outs GPR:$Rn_wb),
-               (ins GPR:$Rt, GPR:$Rn, am2offset_imm:$offset, pred:$p),
-               4, IIC_iStore_ru,
-            [(set GPR:$Rn_wb,
+
+let Predicates = [IsSTRBEnabled] in {
+  def STRBi_preidx: ARMPseudoInst<(outs GPR:$Rn_wb),
+                (ins GPR:$Rt, GPR:$Rn, am2offset_imm:$offset, pred:$p),
+                4, IIC_iStore_ru,
+              [(set GPR:$Rn_wb,
                   (pre_truncsti8 GPR:$Rt, GPR:$Rn, am2offset_imm:$offset))]>;
-def STRBr_preidx: ARMPseudoInst<(outs GPR:$Rn_wb),
-               (ins GPR:$Rt, GPR:$Rn, am2offset_reg:$offset, pred:$p),
-               4, IIC_iStore_ru,
-            [(set GPR:$Rn_wb,
-                  (pre_truncsti8 GPR:$Rt, GPR:$Rn, am2offset_reg:$offset))]>;
+  def STRBr_preidx: ARMPseudoInst<(outs GPR:$Rn_wb),
+                (ins GPR:$Rt, GPR:$Rn, am2offset_reg:$offset, pred:$p),
+                4, IIC_iStore_ru,
+              [(set GPR:$Rn_wb,
+                    (pre_truncsti8 GPR:$Rt, GPR:$Rn, am2offset_reg:$offset))]>;
+}
+
 def STRH_preidx: ARMPseudoInst<(outs GPR:$Rn_wb),
                (ins GPR:$Rt, GPR:$Rn, am3offset:$offset, pred:$p),
                4, IIC_iStore_ru,
@@ -3390,45 +3403,47 @@ def STRD_POST: AI3ldstidx<0b1111, 0, 0, (outs GPR:$Rn_wb),
 
 let mayStore = 1, hasSideEffects = 0 in {
 
-def STRBT_POST_REG : AI2ldstidx<0, 1, 0, (outs GPR:$Rn_wb),
-                   (ins GPR:$Rt, addr_offset_none:$addr, am2offset_reg:$offset),
-                   IndexModePost, StFrm, IIC_iStore_bh_ru,
-                   "strbt", "\t$Rt, $addr, $offset",
-                   "$addr.base = $Rn_wb", []> {
-  // {12}     isAdd
-  // {11-0}   imm12/Rm
-  bits<14> offset;
-  bits<4> addr;
-  let Inst{25} = 1;
-  let Inst{23} = offset{12};
-  let Inst{21} = 1; // overwrite
-  let Inst{19-16} = addr;
-  let Inst{11-5} = offset{11-5};
-  let Inst{4} = 0;
-  let Inst{3-0} = offset{3-0};
-  let DecoderMethod = "DecodeAddrMode2IdxInstruction";
-}
+let Predicates = [IsSTRBEnabled] in {
+  def STRBT_POST_REG : AI2ldstidx<0, 1, 0, (outs GPR:$Rn_wb),
+                    (ins GPR:$Rt, addr_offset_none:$addr, am2offset_reg:$offset),
+                    IndexModePost, StFrm, IIC_iStore_bh_ru,
+                    "strbt", "\t$Rt, $addr, $offset",
+                    "$addr.base = $Rn_wb", []> {
+    // {12}     isAdd
+    // {11-0}   imm12/Rm
+    bits<14> offset;
+    bits<4> addr;
+    let Inst{25} = 1;
+    let Inst{23} = offset{12};
+    let Inst{21} = 1; // overwrite
+    let Inst{19-16} = addr;
+    let Inst{11-5} = offset{11-5};
+    let Inst{4} = 0;
+    let Inst{3-0} = offset{3-0};
+    let DecoderMethod = "DecodeAddrMode2IdxInstruction";
+  }
 
-def STRBT_POST_IMM
-  : AI2ldstidx<0, 1, 0, (outs GPR:$Rn_wb),
-               (ins GPR:$Rt, addr_offset_none:$addr, am2offset_imm:$offset),
-               IndexModePost, StFrm, IIC_iStore_bh_ru,
-               "strbt", "\t$Rt, $addr, $offset", "$addr.base = $Rn_wb", []> {
-  // {12}     isAdd
-  // {11-0}   imm12/Rm
-  bits<14> offset;
-  bits<4> addr;
-  let Inst{25} = 0;
-  let Inst{23} = offset{12};
-  let Inst{21} = 1; // overwrite
-  let Inst{19-16} = addr;
-  let Inst{11-0} = offset{11-0};
-  let DecoderMethod = "DecodeAddrMode2IdxInstruction";
-}
+  def STRBT_POST_IMM
+    : AI2ldstidx<0, 1, 0, (outs GPR:$Rn_wb),
+                (ins GPR:$Rt, addr_offset_none:$addr, am2offset_imm:$offset),
+                IndexModePost, StFrm, IIC_iStore_bh_ru,
+                "strbt", "\t$Rt, $addr, $offset", "$addr.base = $Rn_wb", []> {
+    // {12}     isAdd
+    // {11-0}   imm12/Rm
+    bits<14> offset;
+    bits<4> addr;
+    let Inst{25} = 0;
+    let Inst{23} = offset{12};
+    let Inst{21} = 1; // overwrite
+    let Inst{19-16} = addr;
+    let Inst{11-0} = offset{11-0};
+    let DecoderMethod = "DecodeAddrMode2IdxInstruction";
+  }
 
-def STRBT_POST
-  : ARMAsmPseudo<"strbt${q} $Rt, $addr",
-                 (ins GPR:$Rt, addr_offset_none:$addr, pred:$q)>;
+  def STRBT_POST
+    : ARMAsmPseudo<"strbt${q} $Rt, $addr",
+                  (ins GPR:$Rt, addr_offset_none:$addr, pred:$q)>;
+}
 
 def STRT_POST_REG : AI2ldstidx<0, 0, 0, (outs GPR:$Rn_wb),
                    (ins GPR:$Rt, addr_offset_none:$addr, am2offset_reg:$offset),
@@ -6227,10 +6242,14 @@ def : ARMPat<(atomic_load_32 ldst_so_reg:$src),
              (LDRrs ldst_so_reg:$src)>;
 def : ARMPat<(atomic_load_32 addrmode_imm12:$src),
              (LDRi12 addrmode_imm12:$src)>;
-def : ARMPat<(atomic_store_8 GPR:$val, ldst_so_reg:$ptr),
-             (STRBrs GPR:$val, ldst_so_reg:$ptr)>;
-def : ARMPat<(atomic_store_8 GPR:$val, addrmode_imm12:$ptr),
-             (STRBi12 GPR:$val, addrmode_imm12:$ptr)>;
+
+let Predicates = [IsSTRBEnabled] in {
+  def : ARMPat<(atomic_store_8 GPR:$val, ldst_so_reg:$ptr),
+              (STRBrs GPR:$val, ldst_so_reg:$ptr)>;
+  def : ARMPat<(atomic_store_8 GPR:$val, addrmode_imm12:$ptr),
+              (STRBi12 GPR:$val, addrmode_imm12:$ptr)>;
+}
+
 def : ARMPat<(atomic_store_16 GPR:$val, addrmode3:$ptr),
              (STRH GPR:$val, addrmode3:$ptr)>;
 def : ARMPat<(atomic_store_32 GPR:$val, ldst_so_reg:$ptr),

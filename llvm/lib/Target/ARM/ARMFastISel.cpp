@@ -1054,6 +1054,12 @@ bool ARMFastISel::ARMEmitStore(MVT VT, unsigned SrcReg, Address &Addr,
       [[fallthrough]];
     }
     case MVT::i8:
+      if (Subtarget->noI8Store()) {
+        // This subtargets i8 store is broken
+        // Fall back to the normal instruction select
+        return false;
+      }
+
       if (isThumb2) {
         if (Addr.Offset < 0 && Addr.Offset > -256 && Subtarget->hasV6T2Ops())
           StrOpc = ARM::t2STRBi8;
