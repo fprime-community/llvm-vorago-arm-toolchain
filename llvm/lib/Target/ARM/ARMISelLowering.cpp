@@ -1138,7 +1138,7 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM,
       setIndexedLoadAction(im,  MVT::i16, Legal);
       setIndexedLoadAction(im,  MVT::i32, Legal);
       setIndexedStoreAction(im, MVT::i1,  Legal);
-      if (Subtarget->noI8Store())
+      if (Subtarget->badStrb())
         setIndexedStoreAction(im, MVT::i8,  Custom);
       else
         setIndexedStoreAction(im, MVT::i8,  Legal);
@@ -1193,7 +1193,7 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::INTRINSIC_WO_CHAIN, MVT::i64, Custom);
   setOperationAction(ISD::LOAD, MVT::i64, Custom);
   setOperationAction(ISD::STORE, MVT::i64, Custom);
-  if (STI.hasFeature(ARM::FeatureNoI8Store)) {
+  if (Subtarget->badStrb()) {
     setOperationAction(ISD::STORE, MVT::i8, Custom);
     setOperationAction(ISD::ATOMIC_STORE, MVT::i8, Custom);
     setTruncStoreAction(MVT::i32, MVT::i8, Custom);
@@ -10288,7 +10288,7 @@ ARMTargetLowering::LowerSTORE(SDValue Op, SelectionDAG &DAG,
     return DAG.getMemIntrinsicNode(ARMISD::STRD, dl, DAG.getVTList(MVT::Other),
                                    {ST->getChain(), Lo, Hi, ST->getBasePtr()},
                                    MemVT, ST->getMemOperand());
-  } else if (MemVT == MVT::i8 && Subtarget->noI8Store()) {
+  } else if (MemVT == MVT::i8 && Subtarget->badStrb()) {
     const auto &DL = DAG.getDataLayout();
     SDValue Chain = ST->getChain();
     SDValue Val = ST->getValue();
@@ -10508,7 +10508,7 @@ static SDValue LowerVecReduceMinMax(SDValue Op, SelectionDAG &DAG,
 SDValue ARMTargetLowering::LowerATOMIC_STORE(SDValue Op, SelectionDAG &DAG, const ARMSubtarget *Subtarget) const {
   StoreSDNode *ST = cast<StoreSDNode>(Op.getNode());
   EVT MemVT = ST->getMemoryVT();
-  if (MemVT == MVT::i8 && Subtarget->noI8Store()) {
+  if (MemVT == MVT::i8 && Subtarget->badStrb()) {
     const auto &DL = DAG.getDataLayout();
     SDValue Chain = ST->getChain();
     SDValue Val = ST->getValue();
