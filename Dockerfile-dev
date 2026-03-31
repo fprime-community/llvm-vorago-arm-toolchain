@@ -13,6 +13,7 @@ RUN dnf install -y epel-release && \
     dnf upgrade -y && \
     crb enable && \
     dnf install -y \
+        buildah \
         bzip2 \
         cmake \
         diffutils \
