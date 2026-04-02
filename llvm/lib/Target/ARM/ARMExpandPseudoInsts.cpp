@@ -3190,6 +3190,7 @@ bool ARMExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
 
     case ARM::tCMP_SWAP_8:
       assert(STI->isThumb());
+      MI.emitGenericError("8-bit atomic operations are not supported with the 'badstrb' feature");
       return ExpandCMP_SWAP(MBB, MBBI, ARM::t2LDREXB, ARM::t2STREXB, ARM::tUXTB,
                             NextMBBI);
     case ARM::tCMP_SWAP_16:
@@ -3202,6 +3203,7 @@ bool ARMExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
 
     case ARM::CMP_SWAP_8:
       assert(!STI->isThumb());
+      MI.emitGenericError("8-bit atomic operations are not supported with the 'badstrb' feature");
       return ExpandCMP_SWAP(MBB, MBBI, ARM::LDREXB, ARM::STREXB, ARM::UXTB,
                             NextMBBI);
     case ARM::CMP_SWAP_16:

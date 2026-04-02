@@ -10306,12 +10306,11 @@ ARMTargetLowering::LowerSTORE(SDValue Op, SelectionDAG &DAG,
     Entry.Ty = Type::getInt8Ty(*DAG.getContext());
     Args.push_back(Entry);
 
-    // FIXME(tumbar) Do we care about debug location here?
     TargetLowering::CallLoweringInfo CLI(DAG);
     CLI.setDebugLoc(dl).setChain(Chain)
        .setLibCallee(CallingConv::C,
                      Type::getVoidTy(*DAG.getContext()),
-                     DAG.getExternalSymbol("__store_8_as_16", getPointerTy(DL)),
+                     DAG.getExternalSymbol("__badstrb_strb", getPointerTy(DL)),
                      std::move(Args));
 
     std::pair<SDValue, SDValue> CallResult = LowerCallTo(CLI);
@@ -10505,37 +10504,19 @@ static SDValue LowerVecReduceMinMax(SDValue Op, SelectionDAG &DAG,
   return Res;
 }
 
-SDValue ARMTargetLowering::LowerATOMIC_STORE(SDValue Op, SelectionDAG &DAG, const ARMSubtarget *Subtarget) const {
+SDValue ARMTargetLowering::LowerATOMIC_LOAD_STORE(SDValue Op, SelectionDAG &DAG, const ARMSubtarget *Subtarget) const {
   StoreSDNode *ST = cast<StoreSDNode>(Op.getNode());
   EVT MemVT = ST->getMemoryVT();
   if (MemVT == MVT::i8 && Subtarget->badStrb()) {
-    const auto &DL = DAG.getDataLayout();
-    SDValue Chain = ST->getChain();
-    SDValue Val = ST->getValue();
-    SDValue Ptr = ST->getBasePtr();
     SDLoc dl(ST);
 
-    TargetLowering::ArgListTy Args;
-    TargetLowering::ArgListEntry Entry;
+    DiagnosticInfoUnsupported Diag(
+        DAG.getMachineFunction().getFunction(),
+        "8-bit atomic operations are not supported with the 'badstrb' feature",
+        dl.getDebugLoc());
+    DAG.getContext()->diagnose(Diag);
 
-    Entry.Node = Ptr;
-    Entry.Ty = PointerType::getUnqual(*DAG.getContext());
-    Args.push_back(Entry);
-
-    Entry.Node = Val;
-    Entry.Ty = Type::getInt8Ty(*DAG.getContext());
-    Args.push_back(Entry);
-
-    // FIXME(tumbar) Do we care about debug location here?
-    TargetLowering::CallLoweringInfo CLI(DAG);
-    CLI.setDebugLoc(dl).setChain(Chain)
-       .setLibCallee(CallingConv::C,
-                     Type::getVoidTy(*DAG.getContext()),
-                     DAG.getExternalSymbol("__store_8_as_16", getPointerTy(DL)),
-                     std::move(Args));
-
-    std::pair<SDValue, SDValue> CallResult = LowerCallTo(CLI);
-    return CallResult.second; // Return the new chain
+    return SDValue();
   }
 
   if (isStrongerThanMonotonic(cast<AtomicSDNode>(Op)->getSuccessOrdering()))
@@ -10789,7 +10770,7 @@ SDValue ARMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::VECREDUCE_SMAX:
     return LowerVecReduceMinMax(Op, DAG, Subtarget);
   case ISD::ATOMIC_LOAD:
-  case ISD::ATOMIC_STORE:  return LowerATOMIC_STORE(Op, DAG, Subtarget);
+  case ISD::ATOMIC_STORE:  return LowerATOMIC_LOAD_STORE(Op, DAG, Subtarget);
   case ISD::FSINCOS:       return LowerFSINCOS(Op, DAG);
   case ISD::SDIVREM:
   case ISD::UDIVREM:       return LowerDivRem(Op, DAG);

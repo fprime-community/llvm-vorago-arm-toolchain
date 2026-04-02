@@ -1,4 +1,4 @@
-//===----- lib/arm/store_8_as_16.c - Perform 16-bit store in-place of 8-bit stores ----*- C -*-===//
+//===----- lib/arm/badstrb_strb.c - Perform 16-bit store in-place of 8-bit stores ----*- C -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 void __attribute__((weak)) __attribute__((visibility("hidden"))) __attribute__((noinline))
-__store_8_as_16(uint8_t *address, uint8_t value) {
+__badstrb_strb(uint8_t *address, uint8_t value) {
   const uintptr_t address_i = ((uintptr_t)address);
   uint16_t *aligned_address = (uint16_t *)(address_i & ~(0x1));
 
