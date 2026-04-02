@@ -10504,21 +10504,7 @@ static SDValue LowerVecReduceMinMax(SDValue Op, SelectionDAG &DAG,
   return Res;
 }
 
-SDValue ARMTargetLowering::LowerATOMIC_LOAD_STORE(SDValue Op, SelectionDAG &DAG, const ARMSubtarget *Subtarget) const {
-  StoreSDNode *ST = cast<StoreSDNode>(Op.getNode());
-  EVT MemVT = ST->getMemoryVT();
-  if (MemVT == MVT::i8 && Subtarget->badStrb()) {
-    SDLoc dl(ST);
-
-    DiagnosticInfoUnsupported Diag(
-        DAG.getMachineFunction().getFunction(),
-        "8-bit atomic operations are not supported with the 'badstrb' feature",
-        dl.getDebugLoc());
-    DAG.getContext()->diagnose(Diag);
-
-    return SDValue();
-  }
-
+static SDValue LowerAtomicLoadStore(SDValue Op, SelectionDAG &DAG) {
   if (isStrongerThanMonotonic(cast<AtomicSDNode>(Op)->getSuccessOrdering()))
     // Acquire/Release load/store is not legal for targets without a dmb or
     // equivalent available.
@@ -10770,7 +10756,7 @@ SDValue ARMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::VECREDUCE_SMAX:
     return LowerVecReduceMinMax(Op, DAG, Subtarget);
   case ISD::ATOMIC_LOAD:
-  case ISD::ATOMIC_STORE:  return LowerATOMIC_LOAD_STORE(Op, DAG, Subtarget);
+  case ISD::ATOMIC_STORE:  return LowerAtomicLoadStore(Op, DAG);
   case ISD::FSINCOS:       return LowerFSINCOS(Op, DAG);
   case ISD::SDIVREM:
   case ISD::UDIVREM:       return LowerDivRem(Op, DAG);

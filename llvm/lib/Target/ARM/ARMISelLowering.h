@@ -834,8 +834,6 @@ class VectorType;
                                     const ARMSubtarget *Subtarget) const;
     SDValue LowerSTORE(SDValue Op, SelectionDAG &DAG,
                           const ARMSubtarget *Subtarget) const;
-    SDValue LowerATOMIC_LOAD_STORE(SDValue Op, SelectionDAG &DAG,
-                              const ARMSubtarget *Subtarget) const;
     SDValue LowerINTRINSIC_WO_CHAIN(SDValue Op, SelectionDAG &DAG,
                                     const ARMSubtarget *Subtarget) const;
     SDValue LowerBlockAddress(SDValue Op, SelectionDAG &DAG) const;
