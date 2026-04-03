@@ -18,7 +18,7 @@ __badstrb_strb(uint8_t *address, uint8_t value) {
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
   const uint16_t shift = (!(address_i & 0x1)) * 8;
 #else
-  #error "badstrb is only supported on little endian"
+  #error "Invalid endianness"
 #endif
 
   const uint16_t value_mask = (uint16_t)value << shift;
