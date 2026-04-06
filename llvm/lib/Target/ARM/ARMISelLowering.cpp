@@ -929,7 +929,10 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM_,
       setIndexedLoadAction(im,  MVT::i16, Legal);
       setIndexedLoadAction(im,  MVT::i32, Legal);
       setIndexedStoreAction(im, MVT::i1,  Legal);
-      setIndexedStoreAction(im, MVT::i8,  Legal);
+      if (Subtarget->badStrb())
+        setIndexedStoreAction(im, MVT::i8,  Custom);
+      else
+        setIndexedStoreAction(im, MVT::i8,  Legal);
       setIndexedStoreAction(im, MVT::i16, Legal);
       setIndexedStoreAction(im, MVT::i32, Legal);
     }
@@ -991,6 +994,12 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM_,
   setOperationAction(ISD::INTRINSIC_WO_CHAIN, MVT::i64, Custom);
   setOperationAction(ISD::LOAD, MVT::i64, Custom);
   setOperationAction(ISD::STORE, MVT::i64, Custom);
+  if (Subtarget->badStrb()) {
+    setOperationAction(ISD::STORE, MVT::i8, Custom);
+    setOperationAction(ISD::ATOMIC_STORE, MVT::i8, Custom);
+    setTruncStoreAction(MVT::i32, MVT::i8, Custom);
+    setTruncStoreAction(MVT::i16, MVT::i8, Custom);
+  }
 
   // MVE lowers 64 bit shifts to lsll and lsrl
   // assuming that ISD::SRL and SRA of i64 are already marked custom
@@ -1272,7 +1281,7 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM_,
   setOperationAction(ISD::FSINCOS, MVT::f32, Expand);
 
   // FP-ARMv8 implements a lot of rounding-like FP operations.
-  if (Subtarget->hasFPARMv8Base()) {    
+  if (Subtarget->hasFPARMv8Base()) {
     for (auto Op :
          {ISD::FFLOOR,            ISD::FCEIL,             ISD::FROUND,
           ISD::FTRUNC,            ISD::FNEARBYINT,        ISD::FRINT,
@@ -1300,7 +1309,7 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM_,
     setOperationAction(ISD::LRINT, MVT::f16, Expand);
     setOperationAction(ISD::LROUND, MVT::f16, Expand);
     setOperationAction(ISD::FCOPYSIGN, MVT::f16, Expand);
-  
+
     for (auto Op : {ISD::FREM,          ISD::FPOW,         ISD::FPOWI,
                   ISD::FCOS,          ISD::FSIN,         ISD::FSINCOS,
                   ISD::FSINCOSPI,     ISD::FMODF,        ISD::FACOS,
@@ -1322,11 +1331,11 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM_,
     // because the result type is integer.
     for (auto Op : {ISD::STRICT_LROUND, ISD::STRICT_LLROUND, ISD::STRICT_LRINT, ISD::STRICT_LLRINT})
       setOperationAction(Op, MVT::f16, Custom);
-  
+
     for (auto Op : {ISD::FROUND,         ISD::FROUNDEVEN,        ISD::FTRUNC,
-                    ISD::FNEARBYINT,     ISD::FRINT,             ISD::FFLOOR, 
+                    ISD::FNEARBYINT,     ISD::FRINT,             ISD::FFLOOR,
                     ISD::FCEIL,          ISD::STRICT_FROUND,     ISD::STRICT_FROUNDEVEN,
-                    ISD::STRICT_FTRUNC,  ISD::STRICT_FNEARBYINT, ISD::STRICT_FRINT, 
+                    ISD::STRICT_FTRUNC,  ISD::STRICT_FNEARBYINT, ISD::STRICT_FRINT,
                     ISD::STRICT_FFLOOR,  ISD::STRICT_FCEIL}) {
       setOperationAction(Op, MVT::f16, Legal);
     }
@@ -9972,6 +9981,33 @@ SDValue ARMTargetLowering::LowerSTORE(SDValue Op, SelectionDAG &DAG,
     return DAG.getMemIntrinsicNode(ARMISD::STRD, dl, DAG.getVTList(MVT::Other),
                                    {ST->getChain(), Lo, Hi, ST->getBasePtr()},
                                    MemVT, ST->getMemOperand());
+  } else if (MemVT == MVT::i8 && Subtarget->badStrb()) {
+    const auto &DL = DAG.getDataLayout();
+    SDValue Chain = ST->getChain();
+    SDValue Val = ST->getValue();
+    SDValue Ptr = ST->getBasePtr();
+    SDLoc dl(ST);
+
+    TargetLowering::ArgListTy Args;
+    TargetLowering::ArgListEntry Entry;
+
+    Entry.Node = Ptr;
+    Entry.Ty = PointerType::getUnqual(*DAG.getContext());
+    Args.push_back(Entry);
+
+    Entry.Node = Val;
+    Entry.Ty = Type::getInt8Ty(*DAG.getContext());
+    Args.push_back(Entry);
+
+    TargetLowering::CallLoweringInfo CLI(DAG);
+    CLI.setDebugLoc(dl).setChain(Chain)
+       .setLibCallee(CallingConv::C,
+                     Type::getVoidTy(*DAG.getContext()),
+                     DAG.getExternalSymbol("__badstrb_strb", getPointerTy(DL)),
+                     std::move(Args));
+
+    std::pair<SDValue, SDValue> CallResult = LowerCallTo(CLI);
+    return CallResult.second; // Return the new chain
   } else if (Subtarget->hasMVEIntegerOps() &&
              ((MemVT == MVT::v2i1 || MemVT == MVT::v4i1 || MemVT == MVT::v8i1 ||
                MemVT == MVT::v16i1))) {
