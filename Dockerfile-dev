@@ -72,7 +72,7 @@ RUN pip3 install --no-cache-dir --upgrade \
         plantuml-markdown \
         pyelftools \
         pyyaml \
-        WeasyPrint==52.5
+        WeasyPrint
 
 # Install Google's addlicense tool to help with copyright headers
 RUN curl -L --fail \
