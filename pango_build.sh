@@ -26,18 +26,25 @@ STAGING="$PWD/staging"
 cd glib-2.60.7
 meson setup builddir --prefix=/usr/local --wrap-mode=nofallback
 ninja -C builddir
+# Need to install packages twice:
+# Once so it's available to the Pango build
+ninja -C builddir install
+# And once so it goes in the installation tarball
 DESTDIR="$STAGING" ninja -C builddir install
 cd ..
 
 cd harfbuzz-2.6.8
 meson setup builddir --prefix=/usr/local --wrap-mode=nofallback
 ninja -C builddir
+# Same installation pattern for harfbuzz:
+ninja -C builddir install
 DESTDIR="$STAGING" ninja -C builddir install
 cd ..
 
 cd pango-1.44.7
 meson setup builddir --prefix=/usr/local --wrap-mode=nofallback
 ninja -C builddir
+# Pango only needs to be installed once, though
 DESTDIR="$STAGING" ninja -C builddir install
 cd ..
 
