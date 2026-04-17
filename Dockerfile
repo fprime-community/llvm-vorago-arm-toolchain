@@ -9,5 +9,5 @@ RUN --mount=type=bind,source=.,destination=/src \
     tar -C /usr/local -Jx -f /src/build/${lvat_package}.tar.xz --strip-components=1 \
         ${lvat_package}/bin \
         ${lvat_package}/include \
-        ${lvat_package}/lib \
+        ${lvat_package}/lib && \
     tar -C / -Jx -f /src/${pango_package}.tar.xz
