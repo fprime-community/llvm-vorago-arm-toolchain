@@ -33,6 +33,7 @@ cd harfbuzz-2.6.8
 meson setup builddir --prefix=/usr/local --wrap-mode=nofallback
 ninja -C builddir
 DESTDIR="$STAGING" ninja -C builddir install
+cd ..
 
 cd pango-1.44.7
 meson setup builddir --prefix=/usr/local --wrap-mode=nofallback
