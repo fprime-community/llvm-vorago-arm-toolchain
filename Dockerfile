@@ -11,3 +11,6 @@ RUN --mount=type=bind,source=.,destination=/src \
         ${lvat_package}/include \
         ${lvat_package}/lib && \
     tar -C / -Jx -f /src/${pango_package}.tar.xz
+
+ENV PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig/
+ENV LD_LIBRARY_PATH=/usr/local/lib64/
