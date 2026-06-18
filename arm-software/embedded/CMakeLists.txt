@@ -204,6 +204,7 @@ set(LLVM_DISTRIBUTION_COMPONENTS
     clang-resource-headers
     clang
     clang-format
+    clangd
     dsymutil
     lld
     llvm-ar
