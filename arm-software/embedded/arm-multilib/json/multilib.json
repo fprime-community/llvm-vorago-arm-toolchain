@@ -391,6 +391,11 @@
             "flags": "--target=thumbv7m-unknown-none-eabihf -mcustom-feature=nobadstrb -mfpu=fpv4-sp-d16 -fno-exceptions -fno-rtti"
         },
         {
+            "variant": "armv7m_hard_fpv4_sp_d16",
+            "json": "armv7m_hard_fpv4_sp_d16.json",
+            "flags": "--target=thumbv7m-unknown-none-eabihf -mcustom-feature=nobadstrb -mfpu=fpv4-sp-d16 -fno-exceptions -fno-rtti  -mno-unaligned-access"
+        },
+        {
             "variant": "armv7m_hard_fpv4_sp_d16_unaligned_badstrb",
             "json": "armv7m_hard_fpv4_sp_d16_unaligned_badstrb.json",
             "flags": "--target=thumbv7m-unknown-none-eabihf -mcustom-feature=badstrb -mfpu=fpv4-sp-d16 -fno-exceptions -fno-rtti"
@@ -399,11 +404,6 @@
             "variant": "armv7m_hard_fpv4_sp_d16_badstrb",
             "json": "armv7m_hard_fpv4_sp_d16_badstrb.json",
             "flags": "--target=thumbv7m-unknown-none-eabihf -mcustom-feature=badstrb -mfpu=fpv4-sp-d16 -fno-exceptions -fno-rtti -mno-unaligned-access"
-        },
-        {
-            "variant": "armv7m_hard_fpv4_sp_d16",
-            "json": "armv7m_hard_fpv4_sp_d16.json",
-            "flags": "--target=thumbv7m-unknown-none-eabihf -mfpu=fpv4-sp-d16 -fno-exceptions -fno-rtti -mno-unaligned-access"
         },
         {
             "variant": "armebv7m_hard_fpv4_sp_d16",
