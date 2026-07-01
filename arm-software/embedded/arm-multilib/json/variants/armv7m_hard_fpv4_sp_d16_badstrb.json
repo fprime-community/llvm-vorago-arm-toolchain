@@ -2,8 +2,8 @@
     "args": {
         "common": {
             "TARGET_ARCH": "armv7m",
-            "VARIANT": "armv7m_hard_fpv4_sp_d16",
-            "COMPILE_FLAGS": "-mfloat-abi=hard -march=armv7m -mfpu=fpv4-sp-d16 -mno-unaligned-access",
+            "VARIANT": "armv7m_hard_fpv4_sp_d16_badstrb",
+            "COMPILE_FLAGS": "-mfloat-abi=hard -march=armv7m -mcpu=cortex-m4-v41630 -mfpu=fpv4-sp-d16 -mno-unaligned-access",
             "ENABLE_EXCEPTIONS": "OFF",
             "ENABLE_RTTI": "OFF",
             "TEST_EXECUTOR": "qemu",
@@ -18,7 +18,7 @@
             "STACK_SIZE": "4K"
         },
         "picolibc": {
-            "PICOLIBC_BUILD_TYPE": "debugoptimized",
+            "PICOLIBC_BUILD_TYPE": "minsize",
             "ENABLE_CXX_LIBS": "ON",
             "ENABLE_LIBC_TESTS": "ON",
             "ENABLE_COMPILER_RT_TESTS": "ON",
