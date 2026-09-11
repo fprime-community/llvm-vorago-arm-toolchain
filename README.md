@@ -13,9 +13,9 @@ The binaries built under this project are compatible with RHEL 8.
 
 For compactness, this toolchain supports only the following ARMv7-M variants:
 
-- `armv7m_hard_fpv4_sp_d16_unaligned` - Unaligned access enabled, no badstrb workaround
+- `armv7m_hard_fpv4_sp_d16_unaligned_size` - Unaligned access enabled, no badstrb workaround
 - `armv7m_hard_fpv4_sp_d16_unaligned_badstrb` - Unaligned access enabled, with badstrb workaround
-- `armv7m_hard_fpv4_sp_d16` - Aligned access only (no unaligned), no badstrb workaround
+- `armv7m_hard_fpv4_sp_d16_size` - Aligned access only (no unaligned), no badstrb workaround
 - `armv7m_hard_fpv4_sp_d16_badstrb` - Aligned access only (no unaligned), with badstrb workaround
 
 All variants use hard float ABI with FPv4-SP-D16, and disable C++ exceptions and RTTI.

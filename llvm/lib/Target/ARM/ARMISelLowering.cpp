@@ -9989,15 +9989,12 @@ SDValue ARMTargetLowering::LowerSTORE(SDValue Op, SelectionDAG &DAG,
     SDLoc dl(ST);
 
     TargetLowering::ArgListTy Args;
-    TargetLowering::ArgListEntry Entry;
 
-    Entry.Node = Ptr;
-    Entry.Ty = PointerType::getUnqual(*DAG.getContext());
-    Args.push_back(Entry);
+    TargetLowering::ArgListEntry EntryA(nullptr, Ptr, PointerType::getUnqual(*DAG.getContext()));
+    Args.push_back(EntryA);
 
-    Entry.Node = Val;
-    Entry.Ty = Type::getInt8Ty(*DAG.getContext());
-    Args.push_back(Entry);
+    TargetLowering::ArgListEntry EntryB(nullptr, Val, Type::getInt8Ty(*DAG.getContext()));
+    Args.push_back(EntryB);
 
     TargetLowering::CallLoweringInfo CLI(DAG);
     CLI.setDebugLoc(dl).setChain(Chain)
