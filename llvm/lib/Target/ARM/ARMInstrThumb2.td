@@ -2754,6 +2754,20 @@ def t2USAT16: T2SatI<(ins imm0_15:$sat_imm, rGPR:$Rn),
   let Inst{4} = 0;
 }
 
+// Patterns for Thumb-2 mode DSP packed arithmetic
+def : Pat<(i32 (ARMuadd8 rGPR:$Rn, rGPR:$Rm)),
+          (t2UADD8 rGPR:$Rn, rGPR:$Rm)>,
+      Requires<[IsThumb2, HasDSP]>;
+def : Pat<(i32 (ARMusub8 rGPR:$Rn, rGPR:$Rm)),
+          (t2USUB8 rGPR:$Rn, rGPR:$Rm)>,
+      Requires<[IsThumb2, HasDSP]>;
+def : Pat<(i32 (ARMuadd16 rGPR:$Rn, rGPR:$Rm)),
+          (t2UADD16 rGPR:$Rn, rGPR:$Rm)>,
+      Requires<[IsThumb2, HasDSP]>;
+def : Pat<(i32 (ARMusub16 rGPR:$Rn, rGPR:$Rm)),
+          (t2USUB16 rGPR:$Rn, rGPR:$Rm)>,
+      Requires<[IsThumb2, HasDSP]>;
+
 def : T2Pat<(ARMssat GPRnopc:$Rn, imm0_31:$imm),
              (t2SSAT imm0_31:$imm, GPRnopc:$Rn, 0)>;
 def : T2Pat<(ARMusat GPRnopc:$Rn, imm0_31:$imm),
@@ -3218,7 +3232,7 @@ def t2SMLAWT : T2FourRegSMLA<0b011, 0b01, "smlawt",
 
 def : Thumb2DSPMulPat<(add rGPR:$Ra, (mul sext_16_node:$Rn, sext_16_node:$Rm)),
                       (t2SMLABB rGPR:$Rn, rGPR:$Rm, rGPR:$Ra)>;
-def : Thumb2DSPMulPat<(add rGPR:$Ra, (mul sext_16_node:$Rn, 
+def : Thumb2DSPMulPat<(add rGPR:$Ra, (mul sext_16_node:$Rn,
                                           (sext_bottom_16 rGPR:$Rm))),
                       (t2SMLABB rGPR:$Rn, rGPR:$Rm, rGPR:$Ra)>;
 def : Thumb2DSPMulPat<(add rGPR:$Ra, (mul sext_16_node:$Rn,

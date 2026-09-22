@@ -837,6 +837,60 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM_,
     setTargetDAGCombine(ISD::FADD);
   }
 
+  if (!Subtarget->hasNEON() && Subtarget->hasDSP() &&
+      (!Subtarget->isThumb() || Subtarget->isThumb2())) {
+    // Use general-purpose registers to vectorize v4i8 and v2i16 operations
+    addRegisterClass(MVT::v4i8, &ARM::GPRRegClass);
+    addRegisterClass(MVT::v2i16, &ARM::GPRRegClass);
+
+    for (MVT VT : {MVT::v4i8, MVT::v2i16}) {
+      setOperationAction(ISD::BITCAST, VT, Legal);
+
+      // Supported operations with custom lowering
+      setOperationAction(ISD::BUILD_VECTOR, VT, Custom);
+      setOperationAction(ISD::LOAD, VT, Custom);
+      setOperationAction(ISD::STORE, VT, Custom);
+      setOperationAction(ISD::AND, VT, Custom);
+      setOperationAction(ISD::OR, VT, Custom);
+      setOperationAction(ISD::XOR, VT, Custom);
+      setOperationAction(ISD::ADD, VT, Custom);
+      setOperationAction(ISD::SUB, VT, Custom);
+      setOperationAction(ISD::AssertZext, VT, Custom);
+      setOperationAction(ISD::AssertSext, VT, Custom);
+
+      // All other operations are unsupported and should be scalarized
+      setOperationAction(ISD::EXTRACT_VECTOR_ELT, VT, Expand);
+      setOperationAction(ISD::INSERT_VECTOR_ELT, VT, Expand);
+      setOperationAction(ISD::VECTOR_SHUFFLE, VT, Expand);
+      setOperationAction(ISD::CONCAT_VECTORS, VT, Expand);
+      setOperationAction(ISD::EXTRACT_SUBVECTOR, VT, Expand);
+      setOperationAction(ISD::SELECT, VT, Expand);
+      setOperationAction(ISD::VSELECT, VT, Expand);
+      setOperationAction(ISD::SELECT_CC, VT, Expand);
+      setOperationAction(ISD::SETCC, VT, Expand);
+      setOperationAction(ISD::MUL, VT, Expand);
+      setOperationAction(ISD::SDIV, VT, Expand);
+      setOperationAction(ISD::UDIV, VT, Expand);
+      setOperationAction(ISD::SREM, VT, Expand);
+      setOperationAction(ISD::UREM, VT, Expand);
+      setOperationAction(ISD::SHL, VT, Expand);
+      setOperationAction(ISD::SRL, VT, Expand);
+      setOperationAction(ISD::SRA, VT, Expand);
+      setOperationAction(ISD::ROTL, VT, Expand);
+      setOperationAction(ISD::ROTR, VT, Expand);
+      setOperationAction(ISD::SIGN_EXTEND_INREG, VT, Expand);
+      setOperationAction(ISD::TRUNCATE, VT, Expand);
+      setOperationAction(ISD::FP_TO_SINT, VT, Expand);
+      setOperationAction(ISD::FP_TO_UINT, VT, Expand);
+      setOperationAction(ISD::SINT_TO_FP, VT, Expand);
+      setOperationAction(ISD::UINT_TO_FP, VT, Expand);
+      setOperationAction(ISD::SCALAR_TO_VECTOR, VT, Expand);
+      setOperationAction(ISD::ZERO_EXTEND, VT, Expand);
+      setOperationAction(ISD::SIGN_EXTEND, VT, Expand);
+      setOperationAction(ISD::ANY_EXTEND, VT, Expand);
+    }
+  }
+
   if (!Subtarget->hasFP64()) {
     // When targeting a floating-point unit with only single-precision
     // operations, f64 is legal for the few double-precision instructions which
@@ -7713,6 +7767,101 @@ static bool IsQRMVEInstruction(const SDNode *N, const SDNode *Op) {
   }
 }
 
+static SDValue LowerBUILD_VECTOR_v4i8(SDValue Op, SelectionDAG &DAG) {
+  SDLoc dl(Op);
+  assert(Op.getValueType() == MVT::v4i8 && "Expected v4i8 type");
+
+  SDValue Elem0 = Op.getOperand(0);
+  SDValue Elem1 = Op.getOperand(1);
+  SDValue Elem2 = Op.getOperand(2);
+  SDValue Elem3 = Op.getOperand(3);
+
+  // Special case: all constants
+  if (isa<ConstantSDNode>(Elem0) && isa<ConstantSDNode>(Elem1) &&
+      isa<ConstantSDNode>(Elem2) && isa<ConstantSDNode>(Elem3)) {
+    uint32_t Val =
+        (cast<ConstantSDNode>(Elem0)->getZExtValue() & 0xFF) |
+        ((cast<ConstantSDNode>(Elem1)->getZExtValue() & 0xFF) << 8) |
+        ((cast<ConstantSDNode>(Elem2)->getZExtValue() & 0xFF) << 16) |
+        ((cast<ConstantSDNode>(Elem3)->getZExtValue() & 0xFF) << 24);
+    SDValue Packed = DAG.getConstant(Val, dl, MVT::i32);
+    return DAG.getNode(ISD::BITCAST, dl, MVT::v4i8, Packed);
+  }
+
+  // General case: pack scalar values
+  if (Elem0.getValueType() != MVT::i32)
+    Elem0 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i32, Elem0);
+  if (Elem1.getValueType() != MVT::i32)
+    Elem1 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i32, Elem1);
+  if (Elem2.getValueType() != MVT::i32)
+    Elem2 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i32, Elem2);
+  if (Elem3.getValueType() != MVT::i32)
+    Elem3 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i32, Elem3);
+
+  Elem0 = DAG.getNode(ISD::AND, dl, MVT::i32, Elem0,
+                      DAG.getConstant(0xFF, dl, MVT::i32));
+
+  Elem1 = DAG.getNode(ISD::AND, dl, MVT::i32, Elem1,
+                      DAG.getConstant(0xFF, dl, MVT::i32));
+  Elem1 = DAG.getNode(ISD::SHL, dl, MVT::i32, Elem1,
+                      DAG.getConstant(8, dl, MVT::i32));
+
+  Elem2 = DAG.getNode(ISD::AND, dl, MVT::i32, Elem2,
+                      DAG.getConstant(0xFF, dl, MVT::i32));
+  Elem2 = DAG.getNode(ISD::SHL, dl, MVT::i32, Elem2,
+                      DAG.getConstant(16, dl, MVT::i32));
+
+  Elem3 = DAG.getNode(ISD::AND, dl, MVT::i32, Elem3,
+                      DAG.getConstant(0xFF, dl, MVT::i32));
+  Elem3 = DAG.getNode(ISD::SHL, dl, MVT::i32, Elem3,
+                      DAG.getConstant(24, dl, MVT::i32));
+
+  // OR them all together
+  SDValue Packed = DAG.getNode(ISD::OR, dl, MVT::i32, Elem0, Elem1);
+  Packed = DAG.getNode(ISD::OR, dl, MVT::i32, Packed, Elem2);
+  Packed = DAG.getNode(ISD::OR, dl, MVT::i32, Packed, Elem3);
+
+  // Bitcast to v4i8
+  return DAG.getNode(ISD::BITCAST, dl, MVT::v4i8, Packed);
+}
+
+SDValue LowerBUILD_VECTOR_v2i16(SDValue Op, SelectionDAG &DAG) {
+  SDLoc dl(Op);
+  assert(Op.getValueType() == MVT::v2i16 && "Expected v2i16 type");
+
+  SDValue Elem0 = Op.getOperand(0);
+  SDValue Elem1 = Op.getOperand(1);
+
+  // Special case: both constants
+  if (isa<ConstantSDNode>(Elem0) && isa<ConstantSDNode>(Elem1)) {
+    uint32_t Val =
+        (cast<ConstantSDNode>(Elem0)->getZExtValue() & 0xFFFF) |
+        ((cast<ConstantSDNode>(Elem1)->getZExtValue() & 0xFFFF) << 16);
+    SDValue Packed = DAG.getConstant(Val, dl, MVT::i32);
+    return DAG.getNode(ISD::BITCAST, dl, MVT::v2i16, Packed);
+  }
+
+  // General case: pack scalar values
+  if (Elem0.getValueType() != MVT::i32)
+    Elem0 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i32, Elem0);
+  if (Elem1.getValueType() != MVT::i32)
+    Elem1 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i32, Elem1);
+
+  Elem0 = DAG.getNode(ISD::AND, dl, MVT::i32, Elem0,
+                      DAG.getConstant(0xFFFF, dl, MVT::i32));
+
+  Elem1 = DAG.getNode(ISD::AND, dl, MVT::i32, Elem1,
+                      DAG.getConstant(0xFFFF, dl, MVT::i32));
+  Elem1 = DAG.getNode(ISD::SHL, dl, MVT::i32, Elem1,
+                      DAG.getConstant(16, dl, MVT::i32));
+
+  // OR them all together
+  SDValue Packed = DAG.getNode(ISD::OR, dl, MVT::i32, Elem0, Elem1);
+
+  // Bitcast to v2i16
+  return DAG.getNode(ISD::BITCAST, dl, MVT::v2i16, Packed);
+}
+
 // If this is a case we can't handle, return null and let the default
 // expansion code take care of it.
 SDValue ARMTargetLowering::LowerBUILD_VECTOR(SDValue Op, SelectionDAG &DAG,
@@ -7723,6 +7872,13 @@ SDValue ARMTargetLowering::LowerBUILD_VECTOR(SDValue Op, SelectionDAG &DAG,
 
   if (ST->hasMVEIntegerOps() && VT.getScalarSizeInBits() == 1)
     return LowerBUILD_VECTOR_i1(Op, DAG, ST);
+
+  if (ST->hasDSP() && !ST->hasNEON()) {
+    if (VT == MVT::v4i8)
+      return LowerBUILD_VECTOR_v4i8(Op, DAG);
+    if (VT == MVT::v2i16)
+      return LowerBUILD_VECTOR_v2i16(Op, DAG);
+  }
 
   if (SDValue R = LowerBUILD_VECTORToVIDUP(Op, DAG, ST))
     return R;
@@ -10032,6 +10188,20 @@ SDValue ARMTargetLowering::LowerSTORE(SDValue Op, SelectionDAG &DAG,
   StoreSDNode *ST = cast<StoreSDNode>(Op.getNode());
   EVT MemVT = ST->getMemoryVT();
 
+  // Handle DSP scalar-SIMD stores (v4i8, v2i16)
+  if (Subtarget->hasDSP() && !Subtarget->hasNEON()) {
+    if (MemVT == MVT::v4i8 || MemVT == MVT::v2i16) {
+      SDLoc dl(ST);
+      SDValue Value = ST->getValue();
+
+      // Bitcast vector to i32 and create i32 store
+      SDValue Value_i32 = DAG.getNode(ISD::BITCAST, dl, MVT::i32, Value);
+      return DAG.getStore(ST->getChain(), dl, Value_i32, ST->getBasePtr(),
+                          ST->getPointerInfo(), ST->getAlign(),
+                          ST->getMemOperand()->getFlags());
+    }
+  }
+
   if (MemVT == MVT::i64 && Subtarget->hasV5TEOps() &&
       !Subtarget->isThumb1Only() && ST->isVolatile() &&
       ST->getAlign() >= Subtarget->getDualLoadStoreAlignment()) {
@@ -10526,6 +10696,65 @@ SDValue ARMTargetLowering::LowerCMP(SDValue Op, SelectionDAG &DAG) const {
   return Result2;
 }
 
+static SDValue LowerVectorBitwiseOp(SDValue Op, SelectionDAG &DAG) {
+  SDLoc dl(Op);
+  EVT VT = Op.getValueType();
+  assert((VT == MVT::v4i8 || VT == MVT::v2i16) &&
+         "Expected v4i8 or v2i16 type");
+
+  unsigned Opcode = Op.getOpcode();
+  assert((Opcode == ISD::XOR || Opcode == ISD::AND || Opcode == ISD::OR) &&
+         "Expected bitwise operation");
+
+  SDValue LHS = Op.getOperand(0);
+  SDValue RHS = Op.getOperand(1);
+
+  // Bitcast operands to i32
+  SDValue LHS_i32 = DAG.getNode(ISD::BITCAST, dl, MVT::i32, LHS);
+  SDValue RHS_i32 = DAG.getNode(ISD::BITCAST, dl, MVT::i32, RHS);
+
+  // Perform i32 bitwise operation (XOR/AND/OR)
+  SDValue Result_i32 = DAG.getNode(Opcode, dl, MVT::i32, LHS_i32, RHS_i32);
+
+  // Bitcast back to vector type
+  return DAG.getNode(ISD::BITCAST, dl, VT, Result_i32);
+}
+
+static SDValue LowerVectorArithmeticOp(SDValue Op, SelectionDAG &DAG) {
+  SDLoc dl(Op);
+  EVT VT = Op.getValueType();
+  unsigned Opcode = Op.getOpcode();
+
+  assert((VT == MVT::v4i8 || VT == MVT::v2i16) &&
+         "Expected v4i8 or v2i16 type");
+  assert((Opcode == ISD::ADD || Opcode == ISD::SUB) &&
+         "Expected ADD or SUB operation");
+
+  SDValue LHS = Op.getOperand(0);
+  SDValue RHS = Op.getOperand(1);
+
+  // Bitcast operands to i32
+  SDValue LHS_i32 = DAG.getNode(ISD::BITCAST, dl, MVT::i32, LHS);
+  SDValue RHS_i32 = DAG.getNode(ISD::BITCAST, dl, MVT::i32, RHS);
+
+  SDValue Result_i32;
+
+  if (VT == MVT::v4i8) {
+    if (Opcode == ISD::ADD)
+      Result_i32 = DAG.getNode(ARMISD::UADD8, dl, MVT::i32, LHS_i32, RHS_i32);
+    else // ISD::SUB
+      Result_i32 = DAG.getNode(ARMISD::USUB8, dl, MVT::i32, LHS_i32, RHS_i32);
+  } else { // MVT::v2i16
+    if (Opcode == ISD::ADD)
+      Result_i32 = DAG.getNode(ARMISD::UADD16, dl, MVT::i32, LHS_i32, RHS_i32);
+    else // ISD::SUB
+      Result_i32 = DAG.getNode(ARMISD::USUB16, dl, MVT::i32, LHS_i32, RHS_i32);
+  }
+
+  // Bitcast back to vector type
+  return DAG.getNode(ISD::BITCAST, dl, VT, Result_i32);
+}
+
 SDValue ARMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   LLVM_DEBUG(dbgs() << "Lowering node: "; Op.dump());
   switch (Op.getOpcode()) {
@@ -10629,6 +10858,21 @@ SDValue ARMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
          MemVT == MVT::v16i1))
       return LowerPredicateLoad(Op, DAG);
 
+    // Handle DSP scalar-SIMD loads (v4i8, v2i16)
+    if (Subtarget->hasDSP() && !Subtarget->hasNEON()) {
+      if (MemVT == MVT::v4i8 || MemVT == MVT::v2i16) {
+        SDLoc dl(LD);
+        // Load as i32 and bitcast to vector type
+        SDValue Load_i32 = DAG.getLoad(MVT::i32, dl, LD->getChain(),
+                                      LD->getBasePtr(), LD->getPointerInfo(),
+                                      LD->getAlign(),
+                                      LD->getMemOperand()->getFlags());
+        SDValue Result = DAG.getNode(ISD::BITCAST, dl, MemVT, Load_i32);
+        // Return {result, chain}
+        return DAG.getMergeValues({Result, Load_i32.getValue(1)}, dl);
+      }
+    }
+
     auto Pair = LowerAEABIUnalignedLoad(Op, DAG);
     if (Pair.first)
       return DAG.getMergeValues({Pair.first, Pair.second}, SDLoc(Pair.first));
@@ -10691,6 +10935,30 @@ SDValue ARMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
     return DAG.getNode(Op.getOpcode(), DL, {Op.getValueType(), MVT::Other},
                        {Ext.getValue(1), Ext.getValue(0)});
   }
+  case ISD::AND:
+  case ISD::OR:
+  case ISD::XOR:
+    if (Subtarget->hasDSP() && !Subtarget->hasNEON()) {
+      EVT VT = Op.getValueType();
+      if (VT == MVT::v4i8 || VT == MVT::v2i16)
+        return LowerVectorBitwiseOp(Op, DAG);
+    }
+    llvm_unreachable("Don't know how to custom lower this!");
+  case ISD::ADD:
+  case ISD::SUB:
+    if (Subtarget->hasDSP() && !Subtarget->hasNEON()) {
+      EVT VT = Op.getValueType();
+      if (VT == MVT::v4i8 || VT == MVT::v2i16)
+        return LowerVectorArithmeticOp(Op, DAG);
+    }
+    llvm_unreachable("Don't know how to custom lower this!");
+  case ISD::AssertZext:
+  case ISD::AssertSext:
+    // For v4i8/v2i16 scalar-SIMD, strip the assert and return the operand
+    if (Subtarget->hasDSP() && !Subtarget->hasNEON() &&
+        (Op.getValueType() == MVT::v4i8 || Op.getValueType() == MVT::v2i16))
+      return Op.getOperand(0);
+    return SDValue();
   }
 }
 

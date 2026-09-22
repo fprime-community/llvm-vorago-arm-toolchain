@@ -29,6 +29,9 @@ def CC_ARM_APCS : CallingConv<[
   // A SwiftError is passed in R8.
   CCIfSwiftError<CCIfType<[i32], CCAssignToReg<[R8]>>>,
 
+  // v4i8 and v2i16 in GPRs are passed as i32
+  CCIfType<[v4i8, v2i16], CCBitConvertToType<i32>>,
+
   // Handle all vector types as either f64 or v2f64.
   CCIfType<[v1i64, v2i32, v4i16, v4f16, v4bf16, v8i8, v2f32], CCBitConvertToType<f64>>,
   CCIfType<[v2i64, v4i32, v8i16, v8f16, v8bf16, v16i8, v4f32], CCBitConvertToType<v2f64>>,
@@ -54,6 +57,9 @@ def RetCC_ARM_APCS : CallingConv<[
 
   // A SwiftError is returned in R8.
   CCIfSwiftError<CCIfType<[i32], CCAssignToReg<[R8]>>>,
+
+  // v4i8 and v2i16 in GPRs are returned as i32
+  CCIfType<[v4i8, v2i16], CCBitConvertToType<i32>>,
 
   // Handle all vector types as either f64 or v2f64.
   CCIfType<[v1i64, v2i32, v4i16, v4f16, v4bf16, v8i8, v2f32], CCBitConvertToType<f64>>,
@@ -165,6 +171,9 @@ def CC_ARM_AAPCS : CallingConv<[
   // The 'nest' parameter, if any, is passed in R12.
   CCIfNest<CCAssignToReg<[R12]>>,
 
+  // v4i8 and v2i16 in GPRs are passed as i32
+  CCIfType<[v4i8, v2i16], CCBitConvertToType<i32>>,
+
   // Handle all vector types as either f64 or v2f64.
   CCIfType<[v1i64, v2i32, v4i16, v4f16, v4bf16, v8i8, v2f32], CCBitConvertToType<f64>>,
   CCIfType<[v2i64, v4i32, v8i16, v8f16, v8bf16, v16i8, v4f32], CCBitConvertToType<v2f64>>,
@@ -192,6 +201,9 @@ def RetCC_ARM_AAPCS : CallingConv<[
 
   // A SwiftError is returned in R8.
   CCIfSwiftError<CCIfType<[i32], CCAssignToReg<[R8]>>>,
+
+  // v4i8 and v2i16 in GPRs are returned as i32
+  CCIfType<[v4i8, v2i16], CCBitConvertToType<i32>>,
 
   CCIfType<[f64, v2f64], CCCustom<"RetCC_ARM_AAPCS_Custom_f64">>,
   CCIfType<[f32], CCBitConvertToType<i32>>,
@@ -269,7 +281,7 @@ def CSR_NoRegs : CalleeSavedRegs<(add)>;
 def CSR_FPRegs : CalleeSavedRegs<(add (sequence "D%u", 0, 31))>;
 
 def CSR_FP_Interrupt_Regs : CalleeSavedRegs<(add FPSCR, FPEXC, (sequence "D%u", 15, 0))>;
-def CSR_FP_NEON_Interrupt_Regs : CalleeSavedRegs<(add CSR_FP_Interrupt_Regs, 
+def CSR_FP_NEON_Interrupt_Regs : CalleeSavedRegs<(add CSR_FP_Interrupt_Regs,
                                                   (sequence "D%u", 31, 16))>;
 
 def CSR_AAPCS : CalleeSavedRegs<(add LR, R11, R10, R9, R8, R7, R6, R5, R4,
@@ -371,10 +383,10 @@ def CSR_iOS_CXX_TLS_ViaCopy : CalleeSavedRegs<(sub CSR_iOS_CXX_TLS,
 // generally does rather than tracking its liveness as a normal register.
 def CSR_GenericInt : CalleeSavedRegs<(add LR, (sequence "R%u", 12, 0))>;
 
-def CSR_GenericInt_FP : CalleeSavedRegs<(add CSR_GenericInt, 
+def CSR_GenericInt_FP : CalleeSavedRegs<(add CSR_GenericInt,
                                          CSR_FP_Interrupt_Regs)>;
 
-def CSR_GenericInt_FP_NEON : CalleeSavedRegs<(add CSR_GenericInt_FP, 
+def CSR_GenericInt_FP_NEON : CalleeSavedRegs<(add CSR_GenericInt_FP,
                                               CSR_FP_NEON_Interrupt_Regs)>;
 
 
@@ -388,7 +400,7 @@ def CSR_FIQ : CalleeSavedRegs<(add LR, R11, (sequence "R%u", 7, 0))>;
 
 def CSR_FIQ_FP : CalleeSavedRegs<(add CSR_FIQ, CSR_FP_Interrupt_Regs)>;
 
-def CSR_FIQ_FP_NEON : CalleeSavedRegs<(add CSR_FIQ_FP, 
+def CSR_FIQ_FP_NEON : CalleeSavedRegs<(add CSR_FIQ_FP,
                                        CSR_FP_NEON_Interrupt_Regs)>;
 
 
