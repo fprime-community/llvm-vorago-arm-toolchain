@@ -113,85 +113,25 @@ define i64 @scalar_i64(i64 %x, i64 %y) nounwind {
 define <16 x i8> @vector_i128_i8(<16 x i8> %x, <16 x i8> %y) nounwind {
 ; ARM6-LABEL: vector_i128_i8:
 ; ARM6:       @ %bb.0:
-; ARM6-NEXT:    ldrb r12, [sp, #52]
-; ARM6-NEXT:    ldrb r1, [sp, #116]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #48]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #15]
-; ARM6-NEXT:    ldrb r1, [sp, #112]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #44]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #14]
-; ARM6-NEXT:    ldrb r1, [sp, #108]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #40]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #13]
-; ARM6-NEXT:    ldrb r1, [sp, #104]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #36]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #12]
-; ARM6-NEXT:    ldrb r1, [sp, #100]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #32]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #11]
-; ARM6-NEXT:    ldrb r1, [sp, #96]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #28]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #10]
-; ARM6-NEXT:    ldrb r1, [sp, #92]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #24]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #9]
-; ARM6-NEXT:    ldrb r1, [sp, #88]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #20]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #8]
-; ARM6-NEXT:    ldrb r1, [sp, #84]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #16]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #7]
-; ARM6-NEXT:    ldrb r1, [sp, #80]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #12]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #6]
-; ARM6-NEXT:    ldrb r1, [sp, #76]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #8]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #5]
-; ARM6-NEXT:    ldrb r1, [sp, #72]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp, #4]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #4]
-; ARM6-NEXT:    ldrb r1, [sp, #68]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrb r12, [sp]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #3]
-; ARM6-NEXT:    ldrb r1, [sp, #64]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #2]
-; ARM6-NEXT:    ldrb r1, [sp, #60]
-; ARM6-NEXT:    add r1, r1, r3
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0, #1]
-; ARM6-NEXT:    ldrb r1, [sp, #56]
-; ARM6-NEXT:    add r1, r1, r2
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strb r1, [r0]
-; ARM6-NEXT:    bx lr
+; ARM6-NEXT:    push {r11, lr}
+; ARM6-NEXT:    ldr r12, [sp, #8]
+; ARM6-NEXT:    ldr lr, [sp, #12]
+; ARM6-NEXT:    uadd8 r0, r12, r0
+; ARM6-NEXT:    ldr r12, .LCPI4_0
+; ARM6-NEXT:    uadd8 r0, r0, r12
+; ARM6-NEXT:    uadd8 r1, lr, r1
+; ARM6-NEXT:    ldr lr, [sp, #16]
+; ARM6-NEXT:    uadd8 r1, r1, r12
+; ARM6-NEXT:    uadd8 r2, lr, r2
+; ARM6-NEXT:    ldr lr, [sp, #20]
+; ARM6-NEXT:    uadd8 r2, r2, r12
+; ARM6-NEXT:    uadd8 r3, lr, r3
+; ARM6-NEXT:    uadd8 r3, r3, r12
+; ARM6-NEXT:    pop {r11, pc}
+; ARM6-NEXT:    .p2align 2
+; ARM6-NEXT:  @ %bb.1:
+; ARM6-NEXT:  .LCPI4_0:
+; ARM6-NEXT:    .long 16843009 @ 0x1010101
 ;
 ; ARM78-LABEL: vector_i128_i8:
 ; ARM78:       @ %bb.0:
@@ -307,45 +247,22 @@ define <16 x i8> @vector_i128_i8(<16 x i8> %x, <16 x i8> %y) nounwind {
 define <8 x i16> @vector_i128_i16(<8 x i16> %x, <8 x i16> %y) nounwind {
 ; ARM6-LABEL: vector_i128_i16:
 ; ARM6:       @ %bb.0:
-; ARM6-NEXT:    ldrh r12, [sp, #20]
-; ARM6-NEXT:    ldrh r1, [sp, #52]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrh r12, [sp, #16]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strh r1, [r0, #14]
-; ARM6-NEXT:    ldrh r1, [sp, #48]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrh r12, [sp, #12]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strh r1, [r0, #12]
-; ARM6-NEXT:    ldrh r1, [sp, #44]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrh r12, [sp, #8]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strh r1, [r0, #10]
-; ARM6-NEXT:    ldrh r1, [sp, #40]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrh r12, [sp, #4]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strh r1, [r0, #8]
-; ARM6-NEXT:    ldrh r1, [sp, #36]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    ldrh r12, [sp]
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strh r1, [r0, #6]
-; ARM6-NEXT:    ldrh r1, [sp, #32]
-; ARM6-NEXT:    add r1, r1, r12
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strh r1, [r0, #4]
-; ARM6-NEXT:    ldrh r1, [sp, #28]
-; ARM6-NEXT:    add r1, r1, r3
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strh r1, [r0, #2]
-; ARM6-NEXT:    ldrh r1, [sp, #24]
-; ARM6-NEXT:    add r1, r1, r2
-; ARM6-NEXT:    add r1, r1, #1
-; ARM6-NEXT:    strh r1, [r0]
-; ARM6-NEXT:    bx lr
+; ARM6-NEXT:    push {r11, lr}
+; ARM6-NEXT:    ldr r12, [sp, #8]
+; ARM6-NEXT:    ldr lr, [sp, #12]
+; ARM6-NEXT:    uadd16 r0, r12, r0
+; ARM6-NEXT:    mov r12, #1
+; ARM6-NEXT:    orr r12, r12, #65536
+; ARM6-NEXT:    uadd16 r0, r0, r12
+; ARM6-NEXT:    uadd16 r1, lr, r1
+; ARM6-NEXT:    ldr lr, [sp, #16]
+; ARM6-NEXT:    uadd16 r1, r1, r12
+; ARM6-NEXT:    uadd16 r2, lr, r2
+; ARM6-NEXT:    ldr lr, [sp, #20]
+; ARM6-NEXT:    uadd16 r2, r2, r12
+; ARM6-NEXT:    uadd16 r3, lr, r3
+; ARM6-NEXT:    uadd16 r3, r3, r12
+; ARM6-NEXT:    pop {r11, pc}
 ;
 ; ARM78-LABEL: vector_i128_i16:
 ; ARM78:       @ %bb.0:

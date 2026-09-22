@@ -331,31 +331,34 @@ define <3 x i1> @test_srem_vec(<3 x i33> %X) nounwind {
 ; ARM6-NEXT:    bl __moddi3
 ; ARM6-NEXT:    eor r0, r0, #3
 ; ARM6-NEXT:    mov r2, #9
-; ARM6-NEXT:    orrs r4, r0, r1
+; ARM6-NEXT:    orrs r0, r0, r1
+; ARM6-NEXT:    mov r3, #0
+; ARM6-NEXT:    movne r0, #1
+; ARM6-NEXT:    rsb r4, r0, #0
 ; ARM6-NEXT:    and r0, r5, #1
 ; ARM6-NEXT:    rsb r1, r0, #0
 ; ARM6-NEXT:    mov r0, r6
-; ARM6-NEXT:    mov r3, #0
-; ARM6-NEXT:    movne r4, #1
 ; ARM6-NEXT:    bl __moddi3
 ; ARM6-NEXT:    mov r2, #1
 ; ARM6-NEXT:    bic r1, r2, r1
 ; ARM6-NEXT:    mvn r2, #2
 ; ARM6-NEXT:    eor r0, r0, r2
-; ARM6-NEXT:    orrs r5, r0, r1
-; ARM6-NEXT:    ldr r0, [sp, #20]
+; ARM6-NEXT:    orrs r0, r0, r1
 ; ARM6-NEXT:    mvn r2, #8
+; ARM6-NEXT:    movne r0, #1
+; ARM6-NEXT:    rsb r5, r0, #0
+; ARM6-NEXT:    ldr r0, [sp, #20]
 ; ARM6-NEXT:    mvn r3, #0
 ; ARM6-NEXT:    and r0, r0, #1
-; ARM6-NEXT:    movne r5, #1
 ; ARM6-NEXT:    rsb r1, r0, #0
 ; ARM6-NEXT:    ldr r0, [sp, #16]
 ; ARM6-NEXT:    bl __moddi3
 ; ARM6-NEXT:    eor r0, r0, #3
-; ARM6-NEXT:    orrs r2, r0, r1
-; ARM6-NEXT:    mov r0, r4
-; ARM6-NEXT:    movne r2, #1
+; ARM6-NEXT:    orrs r0, r0, r1
 ; ARM6-NEXT:    mov r1, r5
+; ARM6-NEXT:    movne r0, #1
+; ARM6-NEXT:    rsb r2, r0, #0
+; ARM6-NEXT:    mov r0, r4
 ; ARM6-NEXT:    pop {r4, r5, r6, pc}
 ;
 ; ARM7-LABEL: test_srem_vec:
