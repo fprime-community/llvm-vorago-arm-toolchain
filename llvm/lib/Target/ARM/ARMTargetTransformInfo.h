@@ -119,6 +119,9 @@ public:
         return 16;
       if (ST->hasMVEIntegerOps())
         return 8;
+      // Use general-purpose registers as vector registers for scalar-SIMD
+      if (ST->hasDSP())
+        return 13;
       return 0;
     }
 
@@ -137,11 +140,19 @@ public:
         return TypeSize::getFixed(128);
       if (ST->hasMVEIntegerOps())
         return TypeSize::getFixed(128);
+      if (ST->hasDSP())
+        return TypeSize::getFixed(32);  // <4xi8> or <2xi16>
       return TypeSize::getFixed(0);
     case TargetTransformInfo::RGK_ScalableVector:
       return TypeSize::getScalable(0);
     }
     llvm_unreachable("Unsupported register kind");
+  }
+
+  unsigned getMinVectorRegisterBitWidth() const override {
+    if (!ST->hasNEON() && ST->hasDSP())
+      return 32;
+    return 128;
   }
 
   unsigned getMaxInterleaveFactor(ElementCount VF,

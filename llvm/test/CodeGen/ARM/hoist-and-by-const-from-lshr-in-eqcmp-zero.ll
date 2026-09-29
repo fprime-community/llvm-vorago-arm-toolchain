@@ -487,15 +487,24 @@ define <4 x i1> @vec_4xi32_splat_eq(<4 x i32> %x, <4 x i32> %y) nounwind {
 ; ARM6-LABEL: vec_4xi32_splat_eq:
 ; ARM6:       @ %bb.0:
 ; ARM6-NEXT:    push {r11, lr}
-; ARM6-NEXT:    ldr r12, [sp, #8]
-; ARM6-NEXT:    mov lr, #1
-; ARM6-NEXT:    bic r0, lr, r0, lsl r12
 ; ARM6-NEXT:    ldr r12, [sp, #12]
+; ARM6-NEXT:    mov lr, #1
 ; ARM6-NEXT:    bic r1, lr, r1, lsl r12
-; ARM6-NEXT:    ldr r12, [sp, #16]
-; ARM6-NEXT:    bic r2, lr, r2, lsl r12
-; ARM6-NEXT:    ldr r12, [sp, #20]
-; ARM6-NEXT:    bic r3, lr, r3, lsl r12
+; ARM6-NEXT:    rsb r1, r1, #0
+; ARM6-NEXT:    uxtb r12, r1
+; ARM6-NEXT:    ldr r1, [sp, #8]
+; ARM6-NEXT:    bic r0, lr, r0, lsl r1
+; ARM6-NEXT:    ldr r1, [sp, #16]
+; ARM6-NEXT:    rsb r0, r0, #0
+; ARM6-NEXT:    bic r1, lr, r2, lsl r1
+; ARM6-NEXT:    uxtb r0, r0
+; ARM6-NEXT:    rsb r1, r1, #0
+; ARM6-NEXT:    orr r0, r0, r12, lsl #8
+; ARM6-NEXT:    uxtb r1, r1
+; ARM6-NEXT:    orr r0, r0, r1, lsl #16
+; ARM6-NEXT:    ldr r1, [sp, #20]
+; ARM6-NEXT:    bic r1, lr, r3, lsl r1
+; ARM6-NEXT:    sub r0, r0, r1, lsl #24
 ; ARM6-NEXT:    pop {r11, pc}
 ;
 ; ARM78-LABEL: vec_4xi32_splat_eq:
@@ -562,17 +571,24 @@ define <4 x i1> @vec_4xi32_nonsplat_eq(<4 x i32> %x, <4 x i32> %y) nounwind {
 ; ARM6:       @ %bb.0:
 ; ARM6-NEXT:    ldr r12, [sp, #4]
 ; ARM6-NEXT:    mov r0, #1
-; ARM6-NEXT:    bic r1, r0, r1, lsl r12
+; ARM6-NEXT:    bic r0, r0, r1, lsl r12
 ; ARM6-NEXT:    ldr r12, [sp, #8]
-; ARM6-NEXT:    mov r0, #65280
-; ARM6-NEXT:    orr r0, r0, #16711680
-; ARM6-NEXT:    and r0, r0, r2, lsl r12
-; ARM6-NEXT:    clz r0, r0
-; ARM6-NEXT:    lsr r2, r0, #5
-; ARM6-NEXT:    ldr r0, [sp, #12]
-; ARM6-NEXT:    mvn r0, r3, lsl r0
-; ARM6-NEXT:    lsr r3, r0, #31
-; ARM6-NEXT:    mov r0, #1
+; ARM6-NEXT:    mov r1, #65280
+; ARM6-NEXT:    rsb r0, r0, #0
+; ARM6-NEXT:    orr r1, r1, #16711680
+; ARM6-NEXT:    and r1, r1, r2, lsl r12
+; ARM6-NEXT:    uxtb r0, r0
+; ARM6-NEXT:    clz r1, r1
+; ARM6-NEXT:    lsl r0, r0, #8
+; ARM6-NEXT:    lsr r1, r1, #5
+; ARM6-NEXT:    rsb r1, r1, #0
+; ARM6-NEXT:    uxtb r1, r1
+; ARM6-NEXT:    orr r0, r0, r1, lsl #16
+; ARM6-NEXT:    ldr r1, [sp, #12]
+; ARM6-NEXT:    orr r0, r0, #255
+; ARM6-NEXT:    mvn r1, r3, lsl r1
+; ARM6-NEXT:    lsr r1, r1, #31
+; ARM6-NEXT:    sub r0, r0, r1, lsl #24
 ; ARM6-NEXT:    bx lr
 ;
 ; ARM78-LABEL: vec_4xi32_nonsplat_eq:
@@ -657,14 +673,20 @@ define <4 x i1> @vec_4xi32_nonsplat_undef0_eq(<4 x i32> %x, <4 x i32> %y) nounwi
 ; ARM6-LABEL: vec_4xi32_nonsplat_undef0_eq:
 ; ARM6:       @ %bb.0:
 ; ARM6-NEXT:    push {r11, lr}
-; ARM6-NEXT:    ldr r2, [sp, #12]
+; ARM6-NEXT:    ldr r12, [sp, #12]
 ; ARM6-NEXT:    mov lr, #1
-; ARM6-NEXT:    ldr r12, [sp, #8]
-; ARM6-NEXT:    bic r1, lr, r1, lsl r2
-; ARM6-NEXT:    ldr r2, [sp, #20]
-; ARM6-NEXT:    bic r0, lr, r0, lsl r12
-; ARM6-NEXT:    bic r3, lr, r3, lsl r2
-; ARM6-NEXT:    mov r2, #1
+; ARM6-NEXT:    ldr r2, [sp, #8]
+; ARM6-NEXT:    bic r1, lr, r1, lsl r12
+; ARM6-NEXT:    bic r0, lr, r0, lsl r2
+; ARM6-NEXT:    rsb r1, r1, #0
+; ARM6-NEXT:    rsb r0, r0, #0
+; ARM6-NEXT:    uxtb r1, r1
+; ARM6-NEXT:    uxtb r0, r0
+; ARM6-NEXT:    orr r0, r0, r1, lsl #8
+; ARM6-NEXT:    ldr r1, [sp, #20]
+; ARM6-NEXT:    bic r1, lr, r3, lsl r1
+; ARM6-NEXT:    sub r0, r0, r1, lsl #24
+; ARM6-NEXT:    orr r0, r0, #16711680
 ; ARM6-NEXT:    pop {r11, pc}
 ;
 ; ARM78-LABEL: vec_4xi32_nonsplat_undef0_eq:
@@ -724,13 +746,19 @@ define <4 x i1> @vec_4xi32_nonsplat_undef1_eq(<4 x i32> %x, <4 x i32> %y) nounwi
 ; ARM6-LABEL: vec_4xi32_nonsplat_undef1_eq:
 ; ARM6:       @ %bb.0:
 ; ARM6-NEXT:    push {r11, lr}
-; ARM6-NEXT:    ldr r2, [sp, #12]
+; ARM6-NEXT:    ldr r12, [sp, #12]
 ; ARM6-NEXT:    mov lr, #1
-; ARM6-NEXT:    ldr r12, [sp, #8]
-; ARM6-NEXT:    bic r1, lr, r1, lsl r2
-; ARM6-NEXT:    ldr r2, [sp, #20]
-; ARM6-NEXT:    bic r0, lr, r0, lsl r12
-; ARM6-NEXT:    bic r3, lr, r3, lsl r2
+; ARM6-NEXT:    ldr r2, [sp, #8]
+; ARM6-NEXT:    bic r1, lr, r1, lsl r12
+; ARM6-NEXT:    bic r0, lr, r0, lsl r2
+; ARM6-NEXT:    rsb r1, r1, #0
+; ARM6-NEXT:    rsb r0, r0, #0
+; ARM6-NEXT:    uxtb r1, r1
+; ARM6-NEXT:    uxtb r0, r0
+; ARM6-NEXT:    orr r0, r0, r1, lsl #8
+; ARM6-NEXT:    ldr r1, [sp, #20]
+; ARM6-NEXT:    bic r1, lr, r3, lsl r1
+; ARM6-NEXT:    sub r0, r0, r1, lsl #24
 ; ARM6-NEXT:    pop {r11, pc}
 ;
 ; ARM78-LABEL: vec_4xi32_nonsplat_undef1_eq:
@@ -792,13 +820,19 @@ define <4 x i1> @vec_4xi32_nonsplat_undef2_eq(<4 x i32> %x, <4 x i32> %y) nounwi
 ; ARM6-LABEL: vec_4xi32_nonsplat_undef2_eq:
 ; ARM6:       @ %bb.0:
 ; ARM6-NEXT:    push {r11, lr}
-; ARM6-NEXT:    ldr r2, [sp, #12]
+; ARM6-NEXT:    ldr r12, [sp, #12]
 ; ARM6-NEXT:    mov lr, #1
-; ARM6-NEXT:    ldr r12, [sp, #8]
-; ARM6-NEXT:    bic r1, lr, r1, lsl r2
-; ARM6-NEXT:    ldr r2, [sp, #20]
-; ARM6-NEXT:    bic r0, lr, r0, lsl r12
-; ARM6-NEXT:    bic r3, lr, r3, lsl r2
+; ARM6-NEXT:    ldr r2, [sp, #8]
+; ARM6-NEXT:    bic r1, lr, r1, lsl r12
+; ARM6-NEXT:    bic r0, lr, r0, lsl r2
+; ARM6-NEXT:    rsb r1, r1, #0
+; ARM6-NEXT:    rsb r0, r0, #0
+; ARM6-NEXT:    uxtb r1, r1
+; ARM6-NEXT:    uxtb r0, r0
+; ARM6-NEXT:    orr r0, r0, r1, lsl #8
+; ARM6-NEXT:    ldr r1, [sp, #20]
+; ARM6-NEXT:    bic r1, lr, r3, lsl r1
+; ARM6-NEXT:    sub r0, r0, r1, lsl #24
 ; ARM6-NEXT:    pop {r11, pc}
 ;
 ; ARM78-LABEL: vec_4xi32_nonsplat_undef2_eq:

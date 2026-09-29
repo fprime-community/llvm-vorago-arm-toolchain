@@ -8,16 +8,24 @@ define void @test(ptr %0) #0 {
 ; CHECK:       @ %bb.0: @ %entry
 ; CHECK-NEXT:    .save {r4, lr}
 ; CHECK-NEXT:    push {r4, lr}
+; CHECK-NEXT:    .pad #16
+; CHECK-NEXT:    sub sp, sp, #16
 ; CHECK-NEXT:    mov r4, r0
+; CHECK-NEXT:    add r0, sp, #8
 ; CHECK-NEXT:    bl other
-; CHECK-NEXT:    uxth r3, r3
-; CHECK-NEXT:    uxth r2, r2
-; CHECK-NEXT:    uxth r1, r1
-; CHECK-NEXT:    uxth r0, r0
-; CHECK-NEXT:    strb r3, [r4, #3]
-; CHECK-NEXT:    strb r2, [r4, #2]
-; CHECK-NEXT:    strb r1, [r4, #1]
-; CHECK-NEXT:    strb r0, [r4]
+; CHECK-NEXT:    ldr r0, [sp, #8]
+; CHECK-NEXT:    ldr r1, [sp, #12]
+; CHECK-NEXT:    str r0, [sp, #4]
+; CHECK-NEXT:    ldrb r0, [sp, #4]
+; CHECK-NEXT:    ldrb r2, [sp, #6]
+; CHECK-NEXT:    str r1, [sp]
+; CHECK-NEXT:    ldrb r1, [sp]
+; CHECK-NEXT:    ldrh r3, [sp, #2]
+; CHECK-NEXT:    orr r0, r0, r2, lsl #8
+; CHECK-NEXT:    orr r0, r0, r1, lsl #16
+; CHECK-NEXT:    orr r0, r0, r3, lsl #24
+; CHECK-NEXT:    str r0, [r4]
+; CHECK-NEXT:    add sp, sp, #16
 ; CHECK-NEXT:    pop {r4, pc}
 entry:
   %call = call fastcc <4 x i16> @other()
@@ -29,15 +37,21 @@ entry:
 define <4 x i16> @test2() #0 {
 ; CHECK-LABEL: test2:
 ; CHECK:       @ %bb.0: @ %entry
-; CHECK-NEXT:    .save {r11, lr}
-; CHECK-NEXT:    push {r11, lr}
+; CHECK-NEXT:    .save {r4, lr}
+; CHECK-NEXT:    push {r4, lr}
+; CHECK-NEXT:    .pad #8
+; CHECK-NEXT:    sub sp, sp, #8
+; CHECK-NEXT:    mov r4, r0
+; CHECK-NEXT:    mov r0, sp
 ; CHECK-NEXT:    bl other
-; CHECK-NEXT:    movw r1, #65408
-; CHECK-NEXT:    and r0, r0, r1
-; CHECK-NEXT:    and r2, r2, r1
-; CHECK-NEXT:    mov r1, #0
-; CHECK-NEXT:    mov r3, #0
-; CHECK-NEXT:    pop {r11, pc}
+; CHECK-NEXT:    movw r2, #128
+; CHECK-NEXT:    ldm sp, {r0, r1}
+; CHECK-NEXT:    movt r2, #256
+; CHECK-NEXT:    and r1, r1, r2
+; CHECK-NEXT:    and r0, r0, r2
+; CHECK-NEXT:    strd r0, r1, [r4]
+; CHECK-NEXT:    add sp, sp, #8
+; CHECK-NEXT:    pop {r4, pc}
 entry:
   %call = call fastcc <4 x i16> @other()
   %a = and <4 x i16> %call, <i16 u0x80, i16 u0x100, i16 u0x80, i16 u0x100>

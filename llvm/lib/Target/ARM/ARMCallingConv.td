@@ -269,7 +269,7 @@ def CSR_NoRegs : CalleeSavedRegs<(add)>;
 def CSR_FPRegs : CalleeSavedRegs<(add (sequence "D%u", 0, 31))>;
 
 def CSR_FP_Interrupt_Regs : CalleeSavedRegs<(add FPSCR, FPEXC, (sequence "D%u", 15, 0))>;
-def CSR_FP_NEON_Interrupt_Regs : CalleeSavedRegs<(add CSR_FP_Interrupt_Regs, 
+def CSR_FP_NEON_Interrupt_Regs : CalleeSavedRegs<(add CSR_FP_Interrupt_Regs,
                                                   (sequence "D%u", 31, 16))>;
 
 def CSR_AAPCS : CalleeSavedRegs<(add LR, R11, R10, R9, R8, R7, R6, R5, R4,
@@ -371,10 +371,10 @@ def CSR_iOS_CXX_TLS_ViaCopy : CalleeSavedRegs<(sub CSR_iOS_CXX_TLS,
 // generally does rather than tracking its liveness as a normal register.
 def CSR_GenericInt : CalleeSavedRegs<(add LR, (sequence "R%u", 12, 0))>;
 
-def CSR_GenericInt_FP : CalleeSavedRegs<(add CSR_GenericInt, 
+def CSR_GenericInt_FP : CalleeSavedRegs<(add CSR_GenericInt,
                                          CSR_FP_Interrupt_Regs)>;
 
-def CSR_GenericInt_FP_NEON : CalleeSavedRegs<(add CSR_GenericInt_FP, 
+def CSR_GenericInt_FP_NEON : CalleeSavedRegs<(add CSR_GenericInt_FP,
                                               CSR_FP_NEON_Interrupt_Regs)>;
 
 
@@ -388,7 +388,7 @@ def CSR_FIQ : CalleeSavedRegs<(add LR, R11, (sequence "R%u", 7, 0))>;
 
 def CSR_FIQ_FP : CalleeSavedRegs<(add CSR_FIQ, CSR_FP_Interrupt_Regs)>;
 
-def CSR_FIQ_FP_NEON : CalleeSavedRegs<(add CSR_FIQ_FP, 
+def CSR_FIQ_FP_NEON : CalleeSavedRegs<(add CSR_FIQ_FP,
                                        CSR_FP_NEON_Interrupt_Regs)>;
 
 

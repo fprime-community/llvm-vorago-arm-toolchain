@@ -73,7 +73,7 @@ def SDT_ARMPICAdd  : SDTypeProfile<1, 2, [SDTCisSameAs<0, 1>,
                                           SDTCisPtrTy<1>, SDTCisVT<2, i32>]>;
 
 def SDT_ARMThreadPointer : SDTypeProfile<1, 0, [SDTCisPtrTy<0>]>;
-def SDT_ARMEH_SJLJ_Setjmp : SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisPtrTy<1>,
+def SDT_ARMEH_SJLJ_Setjmp : SDTypeProfile<1, 2, [SDTCisVT<0, i32>, SDTCisPtrTy<1>,
                                                  SDTCisInt<2>]>;
 def SDT_ARMEH_SJLJ_Longjmp: SDTypeProfile<0, 2, [SDTCisPtrTy<0>, SDTCisInt<1>]>;
 def SDT_ARMEH_SJLJ_SetupDispatch: SDTypeProfile<0, 0, []>;
@@ -459,6 +459,12 @@ def ARMvcmp      : SDNode<"ARMISD::VCMP", SDTARMVCMP>;
 
 // Vector compare to zero.
 def ARMvcmpz     : SDNode<"ARMISD::VCMPZ", SDTARMVCMPZ>;
+
+// DSP packed arithmetic for scalar-SIMD vectorization
+def ARMuadd8  : SDNode<"ARMISD::UADD8", SDTIntBinOp>;
+def ARMusub8  : SDNode<"ARMISD::USUB8", SDTIntBinOp>;
+def ARMuadd16 : SDNode<"ARMISD::UADD16", SDTIntBinOp>;
+def ARMusub16 : SDNode<"ARMISD::USUB16", SDTIntBinOp>;
 
 // Reinterpret the current contents of a vector register
 // 'VECTOR_REG_CAST' is an operation that reinterprets the contents of a
@@ -4275,6 +4281,20 @@ def USAT16 : AI<(outs GPRnopc:$Rd),
   let Inst{3-0} = Rn;
 }
 
+// Patterns for ARM mode DSP packed arithmetic
+def : Pat<(i32 (ARMuadd8 GPR:$Rn, GPR:$Rm)),
+          (UADD8 GPR:$Rn, GPR:$Rm)>,
+      Requires<[IsARM, HasDSP]>;
+def : Pat<(i32 (ARMusub8 GPR:$Rn, GPR:$Rm)),
+          (USUB8 GPR:$Rn, GPR:$Rm)>,
+      Requires<[IsARM, HasDSP]>;
+def : Pat<(i32 (ARMuadd16 GPR:$Rn, GPR:$Rm)),
+          (UADD16 GPR:$Rn, GPR:$Rm)>,
+      Requires<[IsARM, HasDSP]>;
+def : Pat<(i32 (ARMusub16 GPR:$Rn, GPR:$Rm)),
+          (USUB16 GPR:$Rn, GPR:$Rm)>,
+      Requires<[IsARM, HasDSP]>;
+
 def : ARMV6Pat<(int_arm_ssat GPRnopc:$a, imm1_32:$pos),
                (SSAT imm1_32:$pos, GPRnopc:$a, 0)>;
 def : ARMV6Pat<(int_arm_usat GPRnopc:$a, imm0_31:$pos),
@@ -4296,11 +4316,11 @@ def : ARMV6Pat<(int_arm_usat (shl GPRnopc:$a, imm0_31:$shft), imm0_31:$pos),
 def : ARMV6Pat<(int_arm_usat (sra GPRnopc:$a, asr_imm:$shft), imm0_31:$pos),
                (USAT imm0_31:$pos, GPRnopc:$a, asr_imm:$shft)>;
 def : ARMPat<(ARMssat (shl GPRnopc:$Rn, imm0_31:$shft), imm0_31:$pos),
-               (SSAT imm0_31:$pos, GPRnopc:$Rn, imm0_31:$shft)>;                            
+               (SSAT imm0_31:$pos, GPRnopc:$Rn, imm0_31:$shft)>;
 def : ARMPat<(ARMssat (sra GPRnopc:$Rn, asr_imm:$shft), imm0_31:$pos),
                (SSAT imm0_31:$pos, GPRnopc:$Rn, asr_imm:$shft)>;
 def : ARMPat<(ARMusat (shl GPRnopc:$Rn, imm0_31:$shft), imm0_31:$pos),
-               (USAT imm0_31:$pos, GPRnopc:$Rn, imm0_31:$shft)>;  
+               (USAT imm0_31:$pos, GPRnopc:$Rn, imm0_31:$shft)>;
 def : ARMPat<(ARMusat (sra GPRnopc:$Rn, asr_imm:$shft), imm0_31:$pos),
                (USAT imm0_31:$pos, GPRnopc:$Rn, asr_imm:$shft)>;
 

@@ -652,3 +652,10 @@ def DQuadSpc : RegisterClass<"ARM", [v4i64], 64, (add Tuples3DSpc)>;
 
 // FP context payload
 def FPCXTRegs : RegisterClass<"ARM", [i32], 32, (add FPCXTNS)>;
+
+// Synthetic register class for v4i8/v2i16 scalar-SIMD
+// Uses the same registers as GPR but hidden from calling convention
+def GPR_Vector : RegisterClass<"ARM", [v4i8, v2i16], 32, (add GPR)> {
+  let CopyCost = 0; // Free to copy between GPR and GPR_Vector
+  let isAllocatable = 1;
+}

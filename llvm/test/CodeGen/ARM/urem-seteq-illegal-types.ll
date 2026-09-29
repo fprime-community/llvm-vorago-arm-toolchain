@@ -366,42 +366,70 @@ define <3 x i1> @test_urem_vec(<3 x i11> %X) nounwind {
 ;
 ; ARM6-LABEL: test_urem_vec:
 ; ARM6:       @ %bb.0:
-; ARM6-NEXT:    push {r11, lr}
-; ARM6-NEXT:    mov r3, #171
-; ARM6-NEXT:    sub r12, r1, #1
-; ARM6-NEXT:    orr r3, r3, #512
-; ARM6-NEXT:    mov r1, #183
-; ARM6-NEXT:    orr r1, r1, #1280
-; ARM6-NEXT:    sub lr, r2, #2
-; ARM6-NEXT:    mul r0, r0, r3
-; ARM6-NEXT:    mov r3, #1020
-; ARM6-NEXT:    orr r3, r3, #1024
-; ARM6-NEXT:    mov r2, #51
-; ARM6-NEXT:    mul r1, r12, r1
-; ARM6-NEXT:    orr r2, r2, #768
-; ARM6-NEXT:    mov r12, #255
-; ARM6-NEXT:    and r3, r0, r3
-; ARM6-NEXT:    mul r2, lr, r2
-; ARM6-NEXT:    orr r12, r12, #1792
-; ARM6-NEXT:    lsr r3, r3, #1
-; ARM6-NEXT:    orr r0, r3, r0, lsl #10
-; ARM6-NEXT:    mov r3, #254
-; ARM6-NEXT:    and r1, r1, r12
-; ARM6-NEXT:    orr r3, r3, #1792
-; ARM6-NEXT:    and r0, r0, r3
-; ARM6-NEXT:    and r2, r2, r12
-; ARM6-NEXT:    mov r3, #0
+; ARM6-NEXT:    sub sp, sp, #16
+; ARM6-NEXT:    pkhbt r0, r0, r1, lsl #16
+; ARM6-NEXT:    mov r1, #65536
+; ARM6-NEXT:    usub16 r0, r0, r1
+; ARM6-NEXT:    str r0, [sp]
+; ARM6-NEXT:    mov r0, #183
+; ARM6-NEXT:    ldrh r1, [sp, #2]
+; ARM6-NEXT:    orr r0, r0, #1280
+; ARM6-NEXT:    ldrh r3, [sp]
+; ARM6-NEXT:    ldr r12, .LCPI4_0
+; ARM6-NEXT:    mul r0, r1, r0
+; ARM6-NEXT:    mov r1, #171
+; ARM6-NEXT:    orr r1, r1, #512
+; ARM6-NEXT:    mul r1, r3, r1
+; ARM6-NEXT:    pkhbt r0, r1, r0, lsl #16
+; ARM6-NEXT:    and r0, r0, r12
+; ARM6-NEXT:    str r0, [sp, #4]
+; ARM6-NEXT:    ldrh r0, [sp, #4]
+; ARM6-NEXT:    lsl r1, r1, #10
+; ARM6-NEXT:    ldrh r3, [sp, #6]
+; ARM6-NEXT:    uxth r1, r1
 ; ARM6-NEXT:    lsr r0, r0, #1
-; ARM6-NEXT:    cmp r0, #170
+; ARM6-NEXT:    orr r0, r0, r3, lsl #16
+; ARM6-NEXT:    mov r3, #0
+; ARM6-NEXT:    orr r0, r0, r1
+; ARM6-NEXT:    and r0, r0, r12
+; ARM6-NEXT:    str r0, [sp, #8]
+; ARM6-NEXT:    ldrh r1, [sp, #8]
+; ARM6-NEXT:    ldrh r0, [sp, #10]
+; ARM6-NEXT:    cmp r0, #292
 ; ARM6-NEXT:    mov r0, #0
 ; ARM6-NEXT:    movhi r0, #1
-; ARM6-NEXT:    cmp r1, #292
+; ARM6-NEXT:    cmp r0, #0
+; ARM6-NEXT:    lsr r1, r1, #1
+; ARM6-NEXT:    mvnne r0, #0
+; ARM6-NEXT:    cmp r1, #170
 ; ARM6-NEXT:    mov r1, #0
 ; ARM6-NEXT:    movhi r1, #1
-; ARM6-NEXT:    cmp r2, #1
+; ARM6-NEXT:    cmp r1, #0
+; ARM6-NEXT:    mvnne r1, #0
+; ARM6-NEXT:    pkhbt r0, r1, r0, lsl #16
+; ARM6-NEXT:    str r0, [sp, #12]
+; ARM6-NEXT:    uxth r0, r2
+; ARM6-NEXT:    mov r1, #2
+; ARM6-NEXT:    usub16 r0, r0, r1
+; ARM6-NEXT:    mov r1, #51
+; ARM6-NEXT:    orr r1, r1, #768
+; ARM6-NEXT:    mul r0, r0, r1
+; ARM6-NEXT:    mov r1, #255
+; ARM6-NEXT:    orr r1, r1, #1792
+; ARM6-NEXT:    and r0, r0, r1
+; ARM6-NEXT:    ldrh r1, [sp, #14]
+; ARM6-NEXT:    cmp r0, #1
+; ARM6-NEXT:    ldrh r0, [sp, #12]
 ; ARM6-NEXT:    movhi r3, #1
+; ARM6-NEXT:    cmp r3, #0
+; ARM6-NEXT:    mvnne r3, #0
 ; ARM6-NEXT:    mov r2, r3
-; ARM6-NEXT:    pop {r11, pc}
+; ARM6-NEXT:    add sp, sp, #16
+; ARM6-NEXT:    bx lr
+; ARM6-NEXT:    .p2align 2
+; ARM6-NEXT:  @ %bb.1:
+; ARM6-NEXT:  .LCPI4_0:
+; ARM6-NEXT:    .long 134154239 @ 0x7ff07ff
 ;
 ; ARM7-LABEL: test_urem_vec:
 ; ARM7:       @ %bb.0:
