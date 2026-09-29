@@ -1398,6 +1398,33 @@ InstructionCost ARMTTIImpl::getArithmeticInstrCost(
     }
   }
 
+  // Override cost for DSP SIMD operations
+  if (!ST->hasNEON() && ST->hasDSP()) {
+    auto *VecTy = dyn_cast<FixedVectorType>(Ty);
+    if (VecTy) {
+      Type *EltTy = VecTy->getElementType();
+      unsigned NumElts = VecTy->getNumElements();
+
+      // v4i8 and v2i16 can use DSP SIMD instructions in GPRs
+      if ((EltTy->isIntegerTy(8) && NumElts == 4) ||
+          (EltTy->isIntegerTy(16) && NumElts == 2)) {
+        // Report favorable costs for supported operations
+        switch (ISDOpcode) {
+        case ISD::ADD:
+        case ISD::SUB:
+        case ISD::AND:
+        case ISD::OR:
+        case ISD::XOR:
+          // Single DSP instruction (e.g., SADD8, UADD8, SEL)
+          return 1;
+        default:
+          // Unsupported operations: report scalarization cost
+          return NumElts * 2; // Pessimistic
+        }
+      }
+    }
+  }
+
   std::pair<InstructionCost, MVT> LT = getTypeLegalizationCost(Ty);
 
   if (ST->hasNEON()) {
@@ -1589,6 +1616,22 @@ InstructionCost ARMTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
   // TODO: Handle other cost kinds.
   if (CostKind != TTI::TCK_RecipThroughput)
     return 1;
+
+  // Override cost for DSP SIMD load/store
+  if (!ST->hasNEON() && ST->hasDSP()) {
+    auto *VecTy = dyn_cast<FixedVectorType>(Src);
+    if (VecTy) {
+      Type *EltTy = VecTy->getElementType();
+      unsigned NumElts = VecTy->getNumElements();
+
+      // v4i8 and v2i16 load/store via single LDR/STR instruction
+      if ((EltTy->isIntegerTy(8) && NumElts == 4) ||
+          (EltTy->isIntegerTy(16) && NumElts == 2)) {
+        // Single 32-bit load/store
+        return 1;
+      }
+    }
+  }
 
   // Type legalization can't handle structs
   if (TLI->getValueType(DL, Src, true) == MVT::Other)

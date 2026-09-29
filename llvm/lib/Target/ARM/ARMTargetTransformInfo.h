@@ -149,7 +149,11 @@ public:
     llvm_unreachable("Unsupported register kind");
   }
 
-  unsigned getMinVectorRegisterBitWidth() const override { return 32; }
+  unsigned getMinVectorRegisterBitWidth() const override {
+    if (!ST->hasNEON() && ST->hasDSP())
+      return 32;
+    return 128;
+  }
 
   unsigned getMaxInterleaveFactor(ElementCount VF,
                                   bool HasUnorderedReductions) const override {

@@ -29,9 +29,6 @@ def CC_ARM_APCS : CallingConv<[
   // A SwiftError is passed in R8.
   CCIfSwiftError<CCIfType<[i32], CCAssignToReg<[R8]>>>,
 
-  // v4i8 and v2i16 in GPRs are passed as i32
-  CCIfType<[v4i8, v2i16], CCBitConvertToType<i32>>,
-
   // Handle all vector types as either f64 or v2f64.
   CCIfType<[v1i64, v2i32, v4i16, v4f16, v4bf16, v8i8, v2f32], CCBitConvertToType<f64>>,
   CCIfType<[v2i64, v4i32, v8i16, v8f16, v8bf16, v16i8, v4f32], CCBitConvertToType<v2f64>>,
@@ -57,9 +54,6 @@ def RetCC_ARM_APCS : CallingConv<[
 
   // A SwiftError is returned in R8.
   CCIfSwiftError<CCIfType<[i32], CCAssignToReg<[R8]>>>,
-
-  // v4i8 and v2i16 in GPRs are returned as i32
-  CCIfType<[v4i8, v2i16], CCBitConvertToType<i32>>,
 
   // Handle all vector types as either f64 or v2f64.
   CCIfType<[v1i64, v2i32, v4i16, v4f16, v4bf16, v8i8, v2f32], CCBitConvertToType<f64>>,
@@ -171,9 +165,6 @@ def CC_ARM_AAPCS : CallingConv<[
   // The 'nest' parameter, if any, is passed in R12.
   CCIfNest<CCAssignToReg<[R12]>>,
 
-  // v4i8 and v2i16 in GPRs are passed as i32
-  CCIfType<[v4i8, v2i16], CCBitConvertToType<i32>>,
-
   // Handle all vector types as either f64 or v2f64.
   CCIfType<[v1i64, v2i32, v4i16, v4f16, v4bf16, v8i8, v2f32], CCBitConvertToType<f64>>,
   CCIfType<[v2i64, v4i32, v8i16, v8f16, v8bf16, v16i8, v4f32], CCBitConvertToType<v2f64>>,
@@ -201,9 +192,6 @@ def RetCC_ARM_AAPCS : CallingConv<[
 
   // A SwiftError is returned in R8.
   CCIfSwiftError<CCIfType<[i32], CCAssignToReg<[R8]>>>,
-
-  // v4i8 and v2i16 in GPRs are returned as i32
-  CCIfType<[v4i8, v2i16], CCBitConvertToType<i32>>,
 
   CCIfType<[f64, v2f64], CCCustom<"RetCC_ARM_AAPCS_Custom_f64">>,
   CCIfType<[f32], CCBitConvertToType<i32>>,

@@ -837,13 +837,9 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM_,
     setTargetDAGCombine(ISD::FADD);
   }
 
-  if (!Subtarget->hasNEON() && Subtarget->hasDSP() &&
-      (!Subtarget->isThumb() || Subtarget->isThumb2())) {
-    // Use general-purpose registers to vectorize v4i8 and v2i16 operations
-    addRegisterClass(MVT::v4i8, &ARM::GPRRegClass);
-    addRegisterClass(MVT::v2i16, &ARM::GPRRegClass);
-
+  if (!Subtarget->hasNEON() && Subtarget->hasDSP()) {
     for (MVT VT : {MVT::v4i8, MVT::v2i16}) {
+      // Bitcasts between v4i8/v2i16 <-> i32 are legal
       setOperationAction(ISD::BITCAST, VT, Legal);
 
       // Supported operations with custom lowering
@@ -855,8 +851,6 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM_,
       setOperationAction(ISD::XOR, VT, Custom);
       setOperationAction(ISD::ADD, VT, Custom);
       setOperationAction(ISD::SUB, VT, Custom);
-      setOperationAction(ISD::AssertZext, VT, Custom);
-      setOperationAction(ISD::AssertSext, VT, Custom);
 
       // All other operations are unsupported and should be scalarized
       setOperationAction(ISD::EXTRACT_VECTOR_ELT, VT, Expand);
@@ -888,6 +882,8 @@ ARMTargetLowering::ARMTargetLowering(const TargetMachine &TM_,
       setOperationAction(ISD::ZERO_EXTEND, VT, Expand);
       setOperationAction(ISD::SIGN_EXTEND, VT, Expand);
       setOperationAction(ISD::ANY_EXTEND, VT, Expand);
+      setOperationAction(ISD::AssertZext, VT, Expand);
+      setOperationAction(ISD::AssertSext, VT, Expand);
     }
   }
 
@@ -10952,13 +10948,6 @@ SDValue ARMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
         return LowerVectorArithmeticOp(Op, DAG);
     }
     llvm_unreachable("Don't know how to custom lower this!");
-  case ISD::AssertZext:
-  case ISD::AssertSext:
-    // For v4i8/v2i16 scalar-SIMD, strip the assert and return the operand
-    if (Subtarget->hasDSP() && !Subtarget->hasNEON() &&
-        (Op.getValueType() == MVT::v4i8 || Op.getValueType() == MVT::v2i16))
-      return Op.getOperand(0);
-    return SDValue();
   }
 }
 
