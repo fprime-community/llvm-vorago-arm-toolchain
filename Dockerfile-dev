@@ -57,6 +57,11 @@ RUN dnf install -y epel-release && \
     alternatives --set python3 /usr/bin/python3.12 && \
     rm -rf /var/cache/dnf
 
+# upgrade for certificate security incidents
+RUN python3 -m pip install --no-cache-dir --upgrade \
+        pip>=26.2.2 \
+        certifi>=2026.10.19
+
 # Note: the Rocky Linux meson is too out-of-date to build picolibc, install the
 # latest using pip instead
 RUN pip3 install --no-cache-dir --upgrade meson
